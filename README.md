@@ -6,7 +6,8 @@
 
 本作品为**杭州电子科技大学第二届 AIGC 应用创新大赛（赛题一）**参赛作品。
 
-**在线演示：** `https://<你的用户名>.github.io/<仓库名>/`（开启 GitHub Pages 后填写；或直接打开 `index.html`）
+**在线演示：** https://shinelovewasd.github.io/course-planner/
+**仓库地址：** https://github.com/shinelovewasd/course-planner
 
 ![主界面](screenshots/主界面.png)
 
