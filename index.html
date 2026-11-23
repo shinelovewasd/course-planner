@@ -516,7 +516,7 @@ table.q .pre{font-size:11px;color:#4338ca;background:#e0e7ff;padding:1px 7px;bor
 
 <div class="foot">
   <b style="color:#64748b">数据来源：</b>标记「真实」的 13 门课程来自《张荣轩(2026-2027-1)课表.pdf》；模块归属、学分、课程性质、考核方式、课程号来自《2026电子信息类（电子信息学院）执行计划》（培养方案）——其中通识必修 31.5、校定必修 1、学科必修 9、外语类 8、实践必修 6、课外教育 9 学分均为方案原文。<br>
-  <b style="color:#64748b">模拟部分：</b>容量与已选人数、标记「模拟」的 8 门课（外语类拓展课程组、课外教育选修组，均为培养方案中「见课程组选择」的课程组内的候选课）。标记「课名真实·参数待核」的 3 门四史课程，课名由本人提供，学分与开课学期为默认假设（1 学分/门、每学期开课）。<br>
+  <b style="color:#64748b">模拟部分：</b>容量与已选人数、标记「模拟」的 8 门课（外语类拓展课程组、课外教育选修组，均为培养方案中「见课程组选择」的课程组内的候选课）。3 门四史课程（党史、改革开放史、社会主义发展史）的课名与学分已由本人向教务确认：1 学分/门，四年内任意学期可修，建议前两年完成。<br>
   本项目仅做本地计算：<b style="color:#64748b">不接入学校教务系统、不模拟登录、不发起任何自动化请求</b>。选课概率为依据「余量 ÷ 容量」的估算值，仅用于排布决策顺序。
 </div>
 <div class="toast" id="toast"></div>
@@ -699,15 +699,15 @@ const COURSES = [
    slots:[{day:0, start:0, len:0, weeks:'2-17', room:'无固定时间'}]},
 
   /* --- 四史：课名由学生提供；学分、开课学期为默认假设，待核实 --- */
-  {id:'s01', code:'—', name:'党史', credit:1.0, module:'sx', teacher:'待定', real:'partial', req:false,
+  {id:'s01', code:'—', name:'党史', credit:1.0, module:'sx', teacher:'待定', real:true, req:false,
    status:'failed', exam:'考查', cap:120, taken:120,
    slots:[{day:0, start:0, len:0, weeks:'2-17', room:'无固定时间'}]},
 
-  {id:'s02', code:'—', name:'改革开放史', credit:1.0, module:'sx', teacher:'待定', real:'partial', req:false,
+  {id:'s02', code:'—', name:'改革开放史', credit:1.0, module:'sx', teacher:'待定', real:true, req:false,
    status:'failed', exam:'考查', cap:120, taken:120,
    slots:[{day:0, start:0, len:0, weeks:'2-17', room:'无固定时间'}]},
 
-  {id:'s03', code:'—', name:'社会主义发展史', credit:1.0, module:'sx', teacher:'待定', real:'partial', req:false,
+  {id:'s03', code:'—', name:'社会主义发展史', credit:1.0, module:'sx', teacher:'待定', real:true, req:false,
    status:'failed', exam:'考查', cap:120, taken:120,
    slots:[{day:0, start:0, len:0, weeks:'2-17', room:'无固定时间'}]}
 ];
