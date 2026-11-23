@@ -1,0 +1,15 @@
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+
+# 临时文件
+~$*.docx
+~$*.pptx
+*.tmp
+*.log
+
+# 不提交个人数据（含姓名、学号）
+*.pdf
+原始数据/

@@ -1,0 +1,2301 @@
+<!DOCTYPE html>
+<!--
+  选课方案规划器 —— 杭州电子科技大学第二届 AIGC 应用创新大赛 参赛作品（赛题一）
+
+  AIGC 使用声明：
+  本文件的结构、样式、脚本与配套的数据解析脚本、项目文档、PPT，均由 AI 辅助生成；
+  需求判断、真实数据的获取与核对、测试用例设计与结果验证、合规边界确认，由作者完成。
+  详见《选课方案规划器-项目文档》附录 A「AI 工具使用说明」。
+
+  边界声明：本页面纯前端运行，不发起任何网络请求，不接入学校教务系统，不模拟登录。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>选课方案规划器 · 先到先得</title>
+<style>
+:root{
+  --bg:#eef1f7; --card:#ffffff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+  --accent:#2563eb; --accent-dk:#1d4ed8; --accent-soft:#eff6ff;
+  --ts:#2563eb; --xk:#0891b2; --zy:#7c3aed; --zx:#0d9488; --sj:#ea580c;
+  --ok:#059669; --warn:#d97706; --bad:#dc2626;
+  --r:14px; --shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px -12px rgba(15,23,42,.18);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink); font-size:14px; line-height:1.55;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+input{font:inherit;color:inherit}
+
+/* ---------- 顶栏 ---------- */
+.top{
+  background:linear-gradient(120deg,#0f172a 0%,#1e293b 55%,#1e3a8a 100%);
+  color:#f8fafc; padding:18px 0 20px; box-shadow:var(--shadow); margin-bottom:18px;
+}
+.top-in{max-width:1560px;margin:0 auto;padding:0 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.logo{
+  width:42px;height:42px;border-radius:12px;flex:0 0 auto;
+  background:linear-gradient(135deg,#3b82f6,#6366f1);
+  display:grid;place-items:center;font-weight:700;font-size:19px;color:#fff;
+  box-shadow:0 6px 16px -6px rgba(59,130,246,.9);
+}
+.top h1{margin:0;font-size:19px;font-weight:650;letter-spacing:.3px}
+.top .sub{margin:2px 0 0;font-size:12.5px;color:#94a3b8}
+.top-tools{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.badge{
+  font-size:12px;padding:5px 11px;border-radius:999px;
+  background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);color:#e2e8f0;
+}
+.badge b{color:#fff}
+.btn{
+  border-radius:10px;padding:9px 16px;font-size:13.5px;font-weight:600;
+  background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.20);color:#e2e8f0;
+  transition:.15s;
+}
+.btn:hover{background:rgba(255,255,255,.18)}
+.btn-primary{background:#f8fafc;color:#0f172a;border-color:#f8fafc}
+.btn-primary:hover{background:#fff}
+.terms{display:inline-flex;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:2px;gap:2px}
+.term-btn{font-size:12.5px;padding:5px 13px;border-radius:8px;color:#cbd5e1;font-weight:600;transition:.15s}
+.term-btn:hover{color:#fff}
+.term-btn.on{background:#f8fafc;color:#0f172a}
+
+/* ---------- 布局 ---------- */
+.wrap{max-width:1560px;margin:0 auto;padding:0 22px 40px}
+.grid{display:grid;grid-template-columns:338px minmax(500px,1fr) 366px;gap:16px;align-items:start}
+@media(max-width:1320px){.grid{grid-template-columns:300px 1fr}.col-right{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;align-items:start}}
+@media(max-width:940px){.grid{grid-template-columns:1fr}}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.card-h{
+  display:flex;align-items:center;gap:8px;padding:13px 15px;border-bottom:1px solid var(--line);
+  font-size:13.5px;font-weight:650;letter-spacing:.2px;
+}
+.card-h .hint{margin-left:auto;font-size:11.5px;font-weight:400;color:var(--muted)}
+.card-b{padding:13px 15px}
+
+/* ---------- 培养方案 ---------- */
+.plan-row{display:grid;grid-template-columns:1fr 66px 66px;gap:8px;align-items:center;padding:5px 0}
+.plan-row+.plan-row{border-top:1px dashed #eef2f7}
+.plan-row .nm{display:flex;align-items:center;gap:7px;font-size:13px}
+.dot{width:8px;height:8px;border-radius:3px;flex:0 0 auto}
+.plan-row input{
+  width:100%;padding:4px 6px;border:1px solid var(--line);border-radius:7px;
+  background:#f8fafc;text-align:center;font-size:12.5px;
+}
+.plan-row input:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+.plan-head{display:grid;grid-template-columns:1fr 66px 66px;gap:8px;font-size:11px;color:var(--muted);padding-bottom:4px;text-align:center}
+.plan-head span:first-child{text-align:left}
+
+/* ---------- 课程池 ---------- */
+.pool-tools{display:flex;gap:6px;flex-wrap:wrap;padding:10px 13px 2px}
+.chip{
+  font-size:11.5px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);
+  background:#f8fafc;color:var(--muted);transition:.15s;
+}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.pool{max-height:430px;overflow-y:auto;padding:8px 9px 10px}
+.pool::-webkit-scrollbar{width:8px}
+.pool::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
+
+.row{
+  width:100%;display:grid;grid-template-columns:4px 1fr auto;gap:9px;align-items:center;
+  padding:8px 9px;border-radius:10px;border:1px solid transparent;text-align:left;transition:.13s;
+}
+.row:hover{background:#f8fafc;border-color:var(--line)}
+.row.on{background:var(--accent-soft);border-color:#bfdbfe}
+.row .bar{width:4px;height:34px;border-radius:3px}
+.row .nm{display:block;font-size:13px;font-weight:600;line-height:1.35}
+.row .meta{display:block;font-size:11px;color:var(--muted);margin-top:1px}
+.row .tail{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.row .tm{font-size:11px;color:#475569;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pct{font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;padding:1px 6px;border-radius:6px}
+.p-hi{background:#dcfce7;color:#15803d}
+.p-mid{background:#fef3c7;color:#a16207}
+.p-low{background:#fee2e2;color:#b91c1c}
+.tag{font-size:10px;padding:1px 5px;border-radius:5px;margin-left:5px;font-weight:600;vertical-align:1px}
+.tag.real{background:#dcfce7;color:#15803d}
+.tag.mock{background:#f1f5f9;color:#64748b;}
+.tag.partial{background:#fef3c7;color:#a16207}
+.tag.req{background:#e0e7ff;color:#4338ca}
+.tag.failed{background:#fee2e2;color:#b91c1c}
+.row.off{opacity:.62;cursor:not-allowed}
+
+/* ---------- 课表 ---------- */
+.tt-head{display:flex;padding:0 15px}
+.tt-head .sp{width:40px;flex:0 0 auto}
+.tt-head .d{flex:1;text-align:center;font-size:12px;color:var(--muted);padding:10px 0 7px;font-weight:600}
+.tt-body{display:flex;padding:0 15px}
+.tt-axis{width:40px;flex:0 0 auto;display:flex;flex-direction:column}
+.tt-axis div{height:34px;font-size:10.5px;color:#94a3b8;display:flex;align-items:flex-start;justify-content:center;padding-top:1px;font-variant-numeric:tabular-nums}
+.tt-cols{display:flex;flex:1;border-radius:10px;overflow:hidden;background:#fff;box-shadow:inset 0 0 0 1px var(--line)}
+.tt-col{flex:1;position:relative;border-left:1px solid #eef2f7}
+.tt-col:first-child{border-left:0}
+.tt-col .cell{height:34px;border-top:1px solid #f1f5f9}
+.tt-col .cell:nth-child(2n){background:#fcfdff}
+.blk{
+  position:absolute;left:3px;right:3px;border-radius:7px;padding:3px 5px;overflow:hidden;
+  color:#0f172a;border-left:3px solid;box-shadow:0 1px 3px rgba(15,23,42,.12);
+}
+.blk b{
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;font-size:10.5px;font-weight:650;line-height:1.2;
+}
+.blk i{display:block;font-style:normal;font-size:9.5px;color:#475569;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 同一格子内不同周次并排时，收窄留白、优先保证课名可读 */
+.blk.narrow{padding:2px 3px;border-left-width:2px}
+.blk.narrow b{-webkit-line-clamp:3;font-size:9.5px;line-height:1.18;word-break:break-all}
+.blk.narrow i{font-size:8.5px;margin-top:0}
+
+.tt-sum{
+  display:flex;gap:16px;flex-wrap:wrap;padding:11px 15px;border-top:1px solid var(--line);
+  font-size:12.5px;color:#334155;background:#fbfcfe;
+}
+.tt-sum b{font-variant-numeric:tabular-nums}
+.tt-sum .k{color:var(--muted);margin-right:3px}
+.floatbar{
+  display:flex;gap:7px;flex-wrap:wrap;align-items:center;
+  padding:9px 15px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);
+}
+.floatbar b{font-weight:600;color:#334155}
+.pill{
+  font-size:11px;padding:2px 8px;border-radius:6px;background:#f1f5f9;color:#475569;
+  border:1px solid var(--line);
+}
+
+/* ---------- 方案卡 ---------- */
+.weights{display:grid;gap:9px}
+.w-row{display:grid;grid-template-columns:74px 1fr 34px;gap:9px;align-items:center;font-size:12.5px}
+.w-row input[type=range]{width:100%;accent-color:var(--accent)}
+.w-row .v{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted);font-size:11.5px}
+.w-row .lb{color:#334155}
+.credit-row{display:flex;align-items:center;gap:9px;padding-top:6px;border-top:1px dashed #eef2f7;margin-top:4px;font-size:12.5px}
+.credit-row input{width:64px;padding:4px 6px;border:1px solid var(--line);border-radius:7px;background:#f8fafc;text-align:center}
+
+.sols{display:grid;gap:9px;padding:11px 13px 6px}
+.sol{
+  width:100%;text-align:left;border:1px solid var(--line);border-radius:12px;padding:11px 12px;
+  background:#fff;transition:.15s;
+}
+.sol:hover{border-color:#bfdbfe;background:#fbfdff}
+.sol.on{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 3px rgba(37,99,235,.10)}
+.sol-top{display:flex;align-items:baseline;gap:8px}
+.sol-top b{font-size:13.5px}
+.sol-top .sc{margin-left:auto;font-size:19px;font-weight:750;font-variant-numeric:tabular-nums;color:var(--accent-dk)}
+.sol-top .sc small{font-size:10.5px;font-weight:600;color:var(--muted);margin-left:1px}
+.sol-desc{font-size:11.5px;color:var(--muted);margin:3px 0 8px}
+.bars{display:grid;gap:4px}
+.bar-row{display:grid;grid-template-columns:56px 1fr 30px;gap:7px;align-items:center;font-size:10.5px;color:var(--muted)}
+.bar-row .t{height:5px;border-radius:3px;background:#eef2f7;overflow:hidden}
+.bar-row .t i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#60a5fa,#2563eb)}
+.bar-row .n{text-align:right;font-variant-numeric:tabular-nums;color:#475569}
+
+/* ---------- 未纳入 ---------- */
+.miss{padding:0 13px 13px}
+.miss .mi{display:flex;gap:7px;font-size:12px;color:#7c2d12;background:#fff7ed;border:1px solid #fed7aa;border-radius:9px;padding:7px 9px;margin-top:7px}
+.miss .mi b{font-weight:650;color:#9a3412}
+.empty{font-size:12.5px;color:var(--muted);text-align:center;padding:18px 10px}
+
+/* ---------- 清单 ---------- */
+.queue{margin-top:16px}
+.q-head{display:flex;align-items:center;gap:10px;padding:13px 15px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.q-head h2{margin:0;font-size:13.5px;font-weight:650}
+.q-head .note{font-size:11.5px;color:var(--muted)}
+.q-head .acts{margin-left:auto;display:flex;gap:8px}
+.btn-sm{
+  font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:9px;
+  background:#fff;border:1px solid var(--line);color:#334155;transition:.15s;
+}
+.btn-sm:hover{border-color:var(--accent);color:var(--accent-dk);background:var(--accent-soft)}
+.btn-sm.solid{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-sm.solid:hover{background:var(--accent-dk)}
+table.q{width:100%;border-collapse:collapse;font-size:13px}
+table.q th{
+  text-align:left;font-size:11.5px;font-weight:600;color:var(--muted);
+  padding:9px 15px;background:#f8fafc;border-bottom:1px solid var(--line);white-space:nowrap;
+}
+table.q td{padding:10px 15px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+table.q tr:last-child td{border-bottom:0}
+table.q .no{
+  display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;
+  background:#eff6ff;color:var(--accent-dk);font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums;
+}
+table.q .cn{font-weight:600}
+table.q .cm{font-size:11px;color:var(--muted)}
+table.q .bk{font-size:12px;color:#334155}
+table.q .wk{font-size:10.5px;color:var(--muted)}
+table.q .pre{font-size:11px;color:#4338ca;background:#e0e7ff;padding:1px 7px;border-radius:6px;font-weight:600}
+
+.foot{max-width:1560px;margin:0 auto;padding:6px 22px 30px;font-size:11.5px;color:#94a3b8;line-height:1.75}
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);
+  background:#0f172a;color:#f8fafc;padding:10px 18px;border-radius:10px;font-size:13px;
+  opacity:0;pointer-events:none;transition:.25s;box-shadow:0 10px 30px -10px rgba(0,0,0,.5);z-index:50;
+}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- 体检 ---------- */
+.diag{padding:0 0 18px}
+.diag-head{display:flex;align-items:center;gap:10px;padding:0 2px 10px;flex-wrap:wrap}
+.diag-head h2{margin:0;font-size:15px;font-weight:700;letter-spacing:.3px}
+.verdict{
+  display:flex;gap:9px;align-items:flex-start;font-size:12.5px;padding:9px 12px;border-radius:10px;
+  border:1px solid;margin-bottom:12px;line-height:1.55;
+}
+.verdict.ok{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
+.verdict.warn{background:#fffbeb;border-color:#fde68a;color:#92400e}
+.verdict.bad{background:#fef2f2;border-color:#fecaca;color:#991b1b}
+.verdict b{font-weight:700}
+.chip2{
+  font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;border:1px solid;
+  cursor:pointer;transition:.15s;margin:0 2px;
+}
+.chip2.bad{background:#fee2e2;border-color:#fecaca;color:#991b1b}
+.chip2.bad:hover{background:#fecaca}
+.chip2.warn{background:#fef3c7;border-color:#fde68a;color:#92400e}
+.chip2.warn:hover{background:#fde68a}
+.chip-tip{font-size:11px;color:#94a3b8;margin-left:6px}
+@keyframes flashBox{
+  0%,100%{box-shadow:none}
+  25%,65%{box-shadow:0 0 0 3px rgba(37,99,235,.45)}
+}
+.flash{animation:flashBox 1.5s ease;border-radius:10px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:10px}
+.tile{
+  background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 13px;
+  box-shadow:var(--shadow);border-top:3px solid var(--muted);
+}
+.tile.ok{border-top-color:#10b981}
+.tile.warn{border-top-color:#f59e0b}
+.tile.bad{border-top-color:#ef4444}
+.tile .lb{font-size:11.5px;color:var(--muted);letter-spacing:.2px;display:flex;align-items:center;gap:5px}
+.ic{
+  width:15px;height:15px;border-radius:50%;display:inline-grid;place-items:center;
+  font-size:10px;font-weight:800;color:#fff;flex:0 0 auto;line-height:1;
+}
+.ic.ok{background:#10b981}
+.ic.warn{background:#f59e0b}
+.ic.bad{background:#ef4444}
+.diag-sum{font-size:12px;color:var(--muted);margin-left:2px}
+.diag-sum b{color:var(--ink)}
+.diag-btns{margin-left:auto;display:flex;gap:8px;align-items:center}
+.tile .vl{font-size:19px;font-weight:750;font-variant-numeric:tabular-nums;margin:2px 0 2px;letter-spacing:.3px}
+.tile.ok .vl{color:#047857}
+.tile.warn .vl{color:#b45309}
+.tile.bad .vl{color:#b91c1c}
+.tile .dt{font-size:11px;color:#64748b;line-height:1.45}
+
+/* ---------- 日程 ---------- */
+.sched{padding:10px 13px 12px;display:grid;gap:7px}
+.sc-item{display:flex;gap:9px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fbfcfe}
+.sc-item .bar2{width:3px;height:30px;border-radius:2px;background:var(--accent);flex:0 0 auto}
+.sc-item.past .bar2{background:#cbd5e1}
+.sc-item.soon .bar2{background:#ef4444}
+.sc-item .nm2{font-size:12.5px;font-weight:600;line-height:1.35}
+.sc-item .at2{font-size:10.5px;color:var(--muted);margin-top:1px}
+.sc-item .cd{margin-left:auto;text-align:right;font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cd.ok{color:#047857}
+.cd.warn{color:#b45309}
+.cd.bad{color:#dc2626}
+.cd.past{color:#94a3b8;font-weight:500}
+.sc-add{display:grid;gap:6px;padding:0 13px 13px}
+.sc-add .r1{display:grid;grid-template-columns:1fr auto;gap:6px}
+.sc-add input[type=text],.sc-add input[type=datetime-local],.sc-add textarea{
+  width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:#f8fafc;
+  font-size:12px;font-family:inherit;
+}
+.sc-add textarea{resize:vertical;min-height:38px}
+.sc-add .r2{display:flex;gap:6px}
+.del2{border:0;background:none;color:#cbd5e1;font-size:15px;line-height:1;padding:0 2px;cursor:pointer}
+.del2:hover{color:#dc2626}
+
+/* ---------- 导入弹窗 ---------- */
+.dlg{border:0;border-radius:16px;padding:0;max-width:780px;width:calc(100% - 40px);box-shadow:0 30px 80px -20px rgba(15,23,42,.5)}
+.dlg::backdrop{background:rgba(15,23,42,.55)}
+.dlg-in{padding:20px 22px 18px}
+.dlg h3{margin:0 0 4px;font-size:16px;font-weight:700}
+.dlg-hint{font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.7}
+.dlg textarea{
+  width:100%;min-height:200px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;
+  background:#f8fafc;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.6;resize:vertical;
+}
+.dlg-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.dlg-msg{font-size:12px;margin-top:8px;padding:8px 10px;border-radius:8px;display:none;line-height:1.6;white-space:pre-wrap}
+.dlg-msg.err{display:block;background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+.dlg-msg.ok{display:block;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534}
+.dlg-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;font-size:12px;color:var(--muted)}
+
+/* ---------- 使用说明 ---------- */
+.dlg-lg{max-width:920px}
+.help-lead{font-size:12.5px;color:#334155;background:#eff6ff;border:1px solid #bfdbfe;border-radius:9px;padding:9px 11px;line-height:1.65;margin:2px 0 6px}
+.help-wrap{max-height:56vh;overflow-y:auto;margin-top:6px;padding-right:4px}
+.help-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.help-tbl th{
+  text-align:left;font-size:11px;color:var(--muted);font-weight:600;
+  padding:5px 7px;background:#f8fafc;border-bottom:1px solid var(--line);position:sticky;top:0;
+}
+.help-tbl td{padding:7px;border-bottom:1px solid #f1f5f9;vertical-align:top;line-height:1.55}
+.help-tbl td:first-child{font-weight:600;white-space:nowrap;color:var(--ink)}
+.help-tbl td:nth-child(2){color:#1d4ed8;white-space:nowrap;font-size:11.5px}
+.help-tbl tr:hover td{background:#fbfdff}
+.help-note{margin-top:10px;font-size:11.5px;color:var(--muted);line-height:1.7}
+
+/* ---------- 备份区 ---------- */
+.bk{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}
+.bk-t{font-size:12.5px;font-weight:650;color:var(--ink);display:flex;align-items:baseline;gap:8px}
+.bk-t span{font-weight:400;font-size:11.5px;color:var(--muted)}
+
+/* ---------- 折叠区 ---------- */
+.fold{padding:0}
+.fold > summary{
+  list-style:none;cursor:pointer;padding:13px 15px;display:flex;align-items:center;gap:8px;
+  font-size:13.5px;font-weight:650;letter-spacing:.2px;user-select:none;
+}
+.fold > summary::-webkit-details-marker{display:none}
+.fold > summary::after{
+  content:'展开';margin-left:auto;font-size:11.5px;font-weight:400;color:var(--muted);
+  border:1px solid var(--line);border-radius:6px;padding:1px 7px;
+}
+.fold[open] > summary::after{content:'收起'}
+.fold > summary .hint{font-weight:400;color:var(--muted);font-size:11.5px}
+.fold[open] > summary{border-bottom:1px solid var(--line)}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="logo">选</div>
+    <div>
+      <h1>选课方案规划器</h1>
+      <p class="sub">先到先得模式 · 周次级冲突检测 · 把「抢课焦虑」变成「预案思维」</p>
+    </div>
+    <div class="top-tools">
+      <span class="terms" id="terms">
+        <button class="term-btn on" data-term="t1">大一上</button>
+        <button class="term-btn" data-term="t2">大一下</button>
+      </span>
+      <span class="badge">真实 <b id="statReal">0</b> · 待核 <b id="statPartial">0</b> · 模拟 <b id="statMock">0</b></span>
+      <span class="badge">想上 <b id="statWant">0</b> 门</span>
+      <button class="btn" id="btnHelp">使用说明</button>
+      <button class="btn" id="btnImport">导入数据</button>
+      <button class="btn" id="btnReset">恢复示例数据</button>
+      <button class="btn btn-primary" id="btnGen">重新计算</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- 体检 -->
+  <section class="diag">
+    <div class="diag-head">
+      <h2>本学期体检</h2>
+      <span class="diag-sum" id="diagSum"></span>
+      <div class="diag-btns">
+        <span class="diag-sum" id="diagTime"></span>
+        <button class="btn-sm" id="btnRecheck">重新检查</button>
+        <button class="btn-sm solid" id="btnReport">导出体检报告</button>
+      </div>
+    </div>
+    <div class="verdict ok" id="verdict"></div>
+    <div class="tiles" id="tiles"></div>
+  </section>
+
+  <div class="grid">
+
+    <!-- 左列 -->
+    <div class="col-left">
+      <section class="card" style="margin-bottom:16px">
+        <div class="card-h">模块学分<span class="hint">已修 / 培养方案要求</span></div>
+        <div class="card-b">
+          <div class="plan-head"><span>模块</span><span>已修</span><span>需修</span></div>
+          <div id="planRows"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-h">候选课程池<span class="hint">点击勾选「想上」</span></div>
+        <div class="pool-tools" id="chips"></div>
+        <div class="pool" id="pool"></div>
+      </section>
+    </div>
+
+    <!-- 中列 -->
+    <section class="card">
+      <div class="card-h">方案预览<span class="hint" id="ttName">尚未生成</span></div>
+      <div class="tt-head">
+        <div class="sp"></div>
+        <div class="d">周一</div><div class="d">周二</div><div class="d">周三</div>
+        <div class="d">周四</div><div class="d">周五</div><div class="d">周六</div><div class="d">周日</div>
+      </div>
+      <div class="tt-body">
+        <div class="tt-axis" id="ttAxis"></div>
+        <div class="tt-cols" id="ttCols"></div>
+      </div>
+      <div class="floatbar" id="floatBar" style="display:none"></div>
+      <div class="tt-sum" id="ttSum"></div>
+    </section>
+
+    <!-- 右列 -->
+    <div class="col-right">
+      <section class="card" style="margin-bottom:16px">
+        <div class="card-h">选课日程<span class="hint">手工录入，不联网</span></div>
+        <div class="sched" id="schedList"></div>
+        <div class="sc-add">
+          <div class="r1">
+            <input type="text" id="scTitle" placeholder="事件，如：第一轮选课开放">
+            <input type="datetime-local" id="scAt">
+          </div>
+          <div class="r2">
+            <textarea id="scPaste" placeholder="可选：粘贴教务通知原文，点「提取时间」自动识别日期时间"></textarea>
+          </div>
+          <div class="r2">
+            <button class="btn-sm" id="btnExtract" style="flex:0 0 auto">提取时间</button>
+            <button class="btn-sm solid" id="btnAddSc" style="flex:1">添加事件</button>
+          </div>
+        </div>
+      </section>
+
+      <details class="card fold" id="foldPlan">
+        <summary>方案比较<span class="hint">默认收起；讲解时请点开</span></summary>
+        <div class="card-b" style="padding-top:12px">
+          <div class="weights" id="weights"></div>
+          <div class="credit-row">
+            <span>学分上限</span>
+            <input type="number" id="maxCredit" min="6" max="45" step="1">
+            <span style="font-size:11.5px;color:var(--muted)">学分</span>
+          </div>
+        </div>
+        <div class="sols" id="sols"><div class="empty">点「生成方案」开始</div></div>
+        <div class="miss" id="miss"></div>
+      </details>
+    </div>
+  </div>
+
+  <!-- 重修 -->
+  <section class="card queue" id="retakeCard">
+    <div class="q-head">
+      <h2>重修（挂科补修）</h2>
+      <span class="note">标记后：抢课清单置顶，把握按重修班容量折算（×0.6）</span>
+      <div class="acts">
+        <select id="retakeSel" style="font-size:12.5px;padding:6px 9px;border:1px solid var(--line);border-radius:9px;background:#fff;color:#334155"></select>
+        <button class="btn-sm" id="btnRetake">标记重修</button>
+      </div>
+    </div>
+    <div id="retakeBody"></div>
+  </section>
+
+  <!-- 待补 -->
+  <section class="card queue" id="todoCard" style="display:none">
+    <div class="q-head">
+      <h2>待补课程（本轮未抢到）</h2>
+      <span class="note" id="todoNote">这些课不进入本轮课表，但必须在培养方案规定的学期内补上</span>
+    </div>
+    <div id="todoBody"></div>
+  </section>
+
+  <!-- 清单 -->
+  <section class="card queue">
+    <div class="q-head">
+      <h2>抢课清单</h2>
+      <span class="note" id="qNote">选修按「越难抢越先抢」排序，必修为预置项</span>
+      <div class="acts">
+        <button class="btn-sm" id="btnCopy">复制清单</button>
+        <button class="btn-sm solid" id="btnExport">导出 .md</button>
+      </div>
+    </div>
+    <div id="qBody"></div>
+  </section>
+</div>
+
+<div class="foot">
+  <b style="color:#64748b">数据来源：</b>标记「真实」的 13 门课程来自《张荣轩(2026-2027-1)课表.pdf》；模块归属、学分、课程性质、考核方式、课程号来自《2026电子信息类（电子信息学院）执行计划》（培养方案）——其中通识必修 31.5、校定必修 1、学科必修 9、外语类 8、实践必修 6、课外教育 9 学分均为方案原文。<br>
+  <b style="color:#64748b">模拟部分：</b>容量与已选人数、标记「模拟」的 8 门课（外语类拓展课程组、课外教育选修组，均为培养方案中「见课程组选择」的课程组内的候选课）。标记「课名真实·参数待核」的 3 门四史课程，课名由本人提供，学分与开课学期为默认假设（1 学分/门、每学期开课）。<br>
+  本项目仅做本地计算：<b style="color:#64748b">不接入学校教务系统、不模拟登录、不发起任何自动化请求</b>。选课概率为依据「余量 ÷ 容量」的估算值，仅用于排布决策顺序。
+</div>
+<div class="toast" id="toast"></div>
+
+<dialog class="dlg dlg-lg" id="helpDlg">
+  <div class="dlg-in">
+    <h3>怎么用这个工具</h3>
+    <p class="help-lead">
+      一句话：先看顶部的体检结论，有问题的点标签跳过去处理；想换方案就看右侧；想把数据换成自己的，点右上「导入数据」。
+      所有计算都在本地完成，不联网。
+    </p>
+    <div class="help-wrap">
+      <table class="help-tbl">
+        <thead><tr><th>功能</th><th>在哪</th><th>怎么用</th></tr></thead>
+        <tbody>
+          <tr><td>学期切换</td><td>右上角</td><td>「大一上 / 大一下」互切。切到大一下时，已修学分自动累计为上学期的必修学分。</td></tr>
+          <tr><td>本学期体检</td><td>页面顶部</td><td>打开即见。7 项检查带 ✓/!/× 判定；点结论里的小标签会滚到对应区块并高亮。</td></tr>
+          <tr><td>重新检查</td><td>体检区右上</td><td>改了课程或学分后点它刷新结论；旁边显示上次检查时间。</td></tr>
+          <tr><td>导出体检报告</td><td>体检区右上（蓝色）</td><td>一键下载 txt：结论、逐项判定、待补清单、下一步建议。可当答辩材料。</td></tr>
+          <tr><td>模块学分</td><td>左侧上方</td><td>直接改「已修 / 需修」数字，体检与缺口会立刻重算。</td></tr>
+          <tr><td>候选课程池</td><td>左侧下方</td><td>点一行就是「想上」，再点取消；上方按模块筛选。绿「真实」、黄「待核」、灰「模拟」是数据来源标注。</td></tr>
+          <tr><td>方案预览</td><td>页面中间</td><td>显示当前方案的周课表。鼠标悬停能看到教师、教室与周次。</td></tr>
+          <tr><td>方案比较</td><td>右侧下方</td><td><b>默认收起</b>，点「展开」才出现三套方案与权重滑杆。它只影响方案，不影响体检。</td></tr>
+          <tr><td>选课日程</td><td>右侧上方</td><td>填事件名和时间即可倒计时；也可以粘贴教务通知原文，点「提取时间」自动识别。</td></tr>
+          <tr><td>重修</td><td>页面下部</td><td>从必修课里选一门，点「标记重修」；该课会置顶到抢课清单，把握按重修班折算。</td></tr>
+          <tr><td>待补清单</td><td>页面下部</td><td>未抢到的课自动列出，并算出「补上之后会不会超学分上限」。</td></tr>
+          <tr><td>抢课清单</td><td>页面底部</td><td>按「重修 → 选修 → 其余必修」排序。可「复制清单」或「导出 .md」。</td></tr>
+          <tr><td>数据导入</td><td>右上角</td><td>粘贴 CSV 或选文件；不熟悉格式就先点「插入模板」。导入会替换当前课程池。</td></tr>
+          <tr><td>备份与迁移</td><td>导入弹窗底部</td><td>「导出全部数据（.json）」把课程、设置、日程、重修标记打包；换电脑或换浏览器时用「从备份文件恢复」搬过去。</td></tr>
+          <tr><td>恢复示例数据</td><td>右上角</td><td>把课程池、设置、日程全部还原成初始状态，演示前一键复位。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="help-note">
+      提示：体检基于「必修 + 想上中能排进去的」计算，与你当前在看哪套方案无关——这是刻意的，
+      否则换个标签结论就变，结论就不可信了。
+    </p>
+    <div class="dlg-acts">
+      <button class="btn-sm solid" id="btnHelpClose">知道了，开始用</button>
+      <button class="btn-sm" id="btnHelpReport">顺便导出一份体检报告</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog class="dlg" id="importDlg">
+  <div class="dlg-in">
+    <h3>导入我的课程数据</h3>
+    <p class="dlg-hint">
+      逗号分隔，首行可为表头。列顺序：<b>课程名, 学分, 模块, 教师, 星期, 起始节, 节数, 周次, 容量, 已选, 口碑, 必修</b><br>
+      同一门课有多个上课时段时，写多行、课程名保持一致即可自动合并；周次填「无」表示没有固定时段。<br>
+      导入会<b>整体替换</b>当前课程池（可用「恢复示例数据」还原）。
+    </p>
+    <div class="dlg-row">
+      <input type="file" id="csvFile" accept=".csv,.txt,text/csv" style="font-size:12px">
+      <span>或直接粘贴到下方</span>
+    </div>
+    <textarea id="csvText" placeholder="课程名,学分,模块,教师,星期,起始节,节数,周次,容量,已选,口碑,必修&#10;高等数学A1,5,通识必修,郦钦龙,周二,3,2,2-17,60,8,4.5,是"></textarea>
+    <div class="dlg-msg" id="csvMsg"></div>
+    <div class="dlg-acts">
+      <button class="btn-sm" id="btnTpl">插入模板</button>
+      <button class="btn-sm" id="btnExpCsv">导出当前课程表</button>
+      <button class="btn-sm solid" id="btnDoImport">导入并替换</button>
+      <button class="btn-sm" id="btnCloseDlg">关闭</button>
+    </div>
+    <div class="bk">
+      <div class="bk-t">备份与迁移<span>换电脑、换浏览器时用它搬运全部设置</span></div>
+      <div class="dlg-acts" style="margin-top:6px">
+        <button class="btn-sm" id="btnBackup">导出全部数据（.json）</button>
+        <button class="btn-sm" id="btnRestore">从备份文件恢复</button>
+        <input type="file" id="jsonFile" accept=".json,application/json" style="display:none">
+      </div>
+      <p class="help-note" style="margin-top:6px">
+        备份含课程池、学分设置、日程、重修标记与"想上"勾选；不含任何个人信息，也不上传。
+      </p>
+    </div>
+  </div>
+</dialog>
+
+<script>
+/* =========================================================
+   数据层
+   ========================================================= */
+const MODULES = {
+  ts:{name:'通识必修', color:'#2563eb'},
+  xd:{name:'校定必修', color:'#6366f1'},
+  xk:{name:'学科必修', color:'#0891b2'},
+  wy:{name:'外语类',   color:'#7c3aed'},
+  sj:{name:'实践必修', color:'#ea580c'},
+  kw:{name:'课外教育', color:'#0f766e'},
+  sx:{name:'四史·通识选修', color:'#b91c1c'}
+};
+const DAYS = ['周一','周二','周三','周四','周五','周六','周日'];
+
+/* 一门课可含多个时段；weeks 为周次描述；group 为课程组（同组互斥） */
+const COURSES = [
+  /* --- 真实：课表 PDF + 培养方案 --- */
+  {id:'r01', code:'A0103370', name:'工程制图', credit:2.0, module:'xk', teacher:'张俐楠,王洪成', real:true, req:true,
+   exam:'考试', cap:40, taken:4,
+   slots:[{day:1, start:3, len:2, weeks:'2-17', room:'正心楼133'}]},
+
+  {id:'r02', code:'A2301261', name:'大学生心理健康教育1', credit:1.0, module:'ts', teacher:'陈文干', real:true, req:true,
+   exam:'考查', cap:40, taken:6,
+   slots:[{day:1, start:6, len:2, weeks:'3,5,7-9单,11,13-17单', room:'正心楼519/课外实践'}]},
+
+  {id:'r03', code:'A1107510', name:'大学英语A', credit:3.0, module:'wy', teacher:'杜兴杰', real:true, req:true,
+   exam:'考试', cap:40, taken:5,
+   slots:[{day:2, start:1, len:2, weeks:'2-17', room:'正心楼402'},
+          {day:4, start:6, len:2, weeks:'3-17单', room:'创智楼334'}]},
+
+  {id:'r04', code:'A0714201', name:'高等数学A1', credit:5.0, module:'ts', teacher:'郦钦龙', real:true, req:true,
+   exam:'考试', cap:60, taken:8,
+   slots:[{day:2, start:3, len:2, weeks:'2-17', room:'正心楼515'},
+          {day:5, start:6, len:3, weeks:'2-17', room:'正心楼507'}]},
+
+  {id:'r05', code:'A0714030', name:'线性代数', credit:3.0, module:'ts', teacher:'金波', real:true, req:true,
+   exam:'考试', cap:60, taken:10,
+   slots:[{day:2, start:6, len:3, weeks:'2-17', room:'正心楼512'}]},
+
+  {id:'r06', code:'A6500041', name:'形势与政策1', credit:0.25, module:'ts', teacher:'徐琳', real:true, req:true,
+   exam:'考查', cap:80, taken:12,
+   slots:[{day:2, start:10, len:2, weeks:'2-5', room:'正心楼502'}]},
+
+  {id:'r07', code:'A0410410', name:'C语言程序设计(甲)', credit:3.0, module:'ts', teacher:'赵鹏', real:true, req:true,
+   exam:'考试', cap:60, taken:9,
+   slots:[{day:3, start:6, len:3, weeks:'2-17', room:'正心楼107'}]},
+
+  {id:'r08', code:'A2301210', name:'中国近现代史纲要', credit:3.0, module:'ts', teacher:'孙玉敏', real:true, req:true,
+   exam:'考试', cap:80, taken:14,
+   slots:[{day:3, start:10, len:3, weeks:'2-17', room:'精诚楼231/课外实践'}]},
+
+  {id:'r09', code:'T1301011', name:'体育1', credit:1.0, module:'xd', teacher:'沈雷', real:true, req:true,
+   exam:'考查', cap:40, taken:8,
+   slots:[{day:4, start:3, len:2, weeks:'2-17', room:'田径场'}]},
+
+  {id:'r10', code:'A0409010', name:'电子信息类学科导论', credit:1.0, module:'xk', teacher:'张忠海', real:true, req:true,
+   exam:'考查', cap:60, taken:7,
+   slots:[{day:6, start:1, len:4, weeks:'8-11', room:'青越201'}]},
+
+  /* 课外教育必修组：培养方案列为「无固定时间」 */
+  {id:'r11', code:'A2300050', name:'国家安全教育', credit:1.0, module:'ts', teacher:'陈菊红', real:true, req:true,
+   exam:'考查', cap:200, taken:30, slots:[{day:0, start:0, len:0, weeks:'2-17', room:'无固定时间'}]},
+
+  {id:'r12', code:'W0600001', name:'人工智能与数字科技', credit:1.0, module:'kw', teacher:'张聪', real:true, req:true,
+   exam:'考查', cap:120, taken:60, slots:[{day:0, start:0, len:0, weeks:'6-13', room:'无固定时间'}]},
+
+  {id:'r13', code:'W0500002', name:'生成式人工智能应用基础', credit:1.0, module:'kw', teacher:'武军', real:true, req:true,
+   exam:'考查', cap:150, taken:143, slots:[{day:0, start:0, len:0, weeks:'4-11', room:'无固定时间'}]},
+
+  /* --- 模拟：培养方案里「见课程组选择」的两类真实课程组 --- */
+  {id:'m01', code:'—', name:'学术英语写作', credit:2.0, module:'wy', teacher:'（模拟）', real:false, req:false,
+   exam:'考查', cap:45, taken:30, group:'wy-ext',
+   slots:[{day:1, start:1, len:2, weeks:'2-17', room:'正心楼403'}]},
+
+  {id:'m02', code:'—', name:'商务英语视听说', credit:2.0, module:'wy', teacher:'（模拟）', real:false, req:false,
+   exam:'考查', cap:45, taken:12, group:'wy-ext',
+   slots:[{day:3, start:3, len:2, weeks:'2-17', room:'正心楼405'}]},
+
+  {id:'m03', code:'—', name:'跨文化交际', credit:2.0, module:'wy', teacher:'（模拟）', real:false, req:false,
+   exam:'考查', cap:45, taken:22, group:'wy-ext',
+   slots:[{day:5, start:3, len:2, weeks:'2-17', room:'正心楼407'}]},
+
+  {id:'m06', code:'—', name:'科技英语阅读', credit:2.0, module:'wy', teacher:'（模拟）', real:false, req:false,
+   exam:'考查', cap:40, taken:33, group:'wy-ext', st:2,
+   slots:[{day:2, start:10, len:2, weeks:'6-17', room:'正心楼409'}]},
+
+  {id:'m07', code:'—', name:'英语演讲与辩论', credit:2.0, module:'wy', teacher:'（模拟）', real:false, req:false,
+   exam:'考查', cap:30, taken:9, group:'wy-ext',
+   slots:[{day:1, start:9, len:2, weeks:'2-17', room:'正心楼411'}]},
+
+  {id:'m04', code:'W0001060', name:'讲座', credit:1.0, module:'kw', teacher:'（模拟）', real:false, req:false,
+   exam:'考查', cap:300, taken:40, group:'kw-sel',
+   slots:[{day:0, start:0, len:0, weeks:'2-17', room:'无固定时间'}]},
+
+  {id:'m05', code:'W5600001', name:'美育课外活动', credit:1.0, module:'kw', teacher:'（模拟）', real:false, req:false,
+   exam:'考查', cap:200, taken:90, group:'kw-sel',
+   slots:[{day:0, start:0, len:0, weeks:'2-17', room:'无固定时间'}]},
+
+  {id:'m08', code:'—', name:'读书活动', credit:1.0, module:'kw', teacher:'（模拟）', real:false, req:false,
+   exam:'考查', cap:150, taken:25, group:'kw-sel',
+   slots:[{day:0, start:0, len:0, weeks:'2-17', room:'无固定时间'}]},
+
+  /* --- 四史：课名由学生提供；学分、开课学期为默认假设，待核实 --- */
+  {id:'s01', code:'—', name:'党史', credit:1.0, module:'sx', teacher:'待定', real:'partial', req:false,
+   status:'failed', exam:'考查', cap:120, taken:120,
+   slots:[{day:0, start:0, len:0, weeks:'2-17', room:'无固定时间'}]},
+
+  {id:'s02', code:'—', name:'改革开放史', credit:1.0, module:'sx', teacher:'待定', real:'partial', req:false,
+   status:'failed', exam:'考查', cap:120, taken:120,
+   slots:[{day:0, start:0, len:0, weeks:'2-17', room:'无固定时间'}]},
+
+  {id:'s03', code:'—', name:'社会主义发展史', credit:1.0, module:'sx', teacher:'待定', real:'partial', req:false,
+   status:'failed', exam:'考查', cap:120, taken:120,
+   slots:[{day:0, start:0, len:0, weeks:'2-17', room:'无固定时间'}]}
+];
+
+/* 教师口碑（模拟）：1-5 分，仅用于演示"选老师"这一维度 */
+const RATES = {
+  r01:3.9, r02:4.3, r03:4.1, r04:4.5, r05:3.6, r06:3.2, r07:4.2,
+  r08:3.5, r09:4.0, r10:3.8, r11:3.0, r12:4.4, r13:4.6,
+  m01:4.5, m02:3.4, m03:4.0, m04:3.0, m05:4.2, m06:2.9, m07:4.7, m08:3.7,
+  s01:3.4, s02:3.3, s03:3.2
+};
+
+/* 大一下（学期 2）：课名、学分、课程性质、考核方式来自培养方案；上课时间与容量为模拟 */
+const T2_COURSES = [
+  {id:'t201', code:'A2301260', name:'思想道德与法治', credit:3.0, module:'ts', teacher:'（模拟）', real:'partial', req:true, term:'t2',
+   exam:'考试', cap:120, taken:30, rate:3.9,
+   slots:[{day:1, start:1, len:2, weeks:'2-17', room:'正心楼501'}]},
+  {id:'t202', code:'A0714202', name:'高等数学A2', credit:5.0, module:'ts', teacher:'（模拟）', real:'partial', req:true, term:'t2',
+   exam:'考试', cap:120, taken:35, rate:3.7,
+   slots:[{day:1, start:3, len:2, weeks:'2-17', room:'正心楼503'},
+          {day:3, start:1, len:2, weeks:'2-17', room:'正心楼503'}]},
+  {id:'t203', code:'A0715681', name:'大学物理B1', credit:2.0, module:'ts', teacher:'（模拟）', real:'partial', req:true, term:'t2',
+   exam:'考试', cap:100, taken:40, rate:3.5,
+   slots:[{day:2, start:1, len:2, weeks:'2-17', room:'正心楼505'}]},
+  {id:'t204', code:'A6500040', name:'军事理论', credit:2.0, module:'ts', teacher:'（模拟）', real:'partial', req:true, term:'t2',
+   exam:'考查', cap:150, taken:45, rate:3.3,
+   slots:[{day:2, start:3, len:2, weeks:'2-17', room:'正心楼507'}]},
+  {id:'t205', code:'A6500042', name:'形势与政策2', credit:0.25, module:'ts', teacher:'（模拟）', real:'partial', req:true, term:'t2',
+   exam:'考查', cap:150, taken:50, rate:3.2,
+   slots:[{day:2, start:5, len:2, weeks:'2-5', room:'正心楼509'}]},
+  {id:'t206', code:'A0410560', name:'人工智能导论', credit:2.0, module:'ts', teacher:'（模拟）', real:'partial', req:true, term:'t2',
+   exam:'考查', cap:120, taken:88, rate:4.4,
+   slots:[{day:3, start:3, len:2, weeks:'2-17', room:'正心楼511'}]},
+  {id:'t207', code:'A2301262', name:'大学生心理健康教育2', credit:1.0, module:'ts', teacher:'（模拟）', real:'partial', req:true, term:'t2',
+   exam:'考查', cap:120, taken:30, rate:4.0,
+   slots:[{day:3, start:5, len:2, weeks:'2-17', room:'正心楼513'}]},
+  {id:'t208', code:'A0400691', name:'电路与电子线路1', credit:3.0, module:'xk', teacher:'（模拟）', real:'partial', req:true, term:'t2',
+   exam:'考试', cap:110, taken:60, rate:3.8,
+   slots:[{day:4, start:1, len:2, weeks:'2-17', room:'精诚楼201'}]},
+  {id:'t209', code:'A0402900', name:'数字逻辑电路', credit:3.0, module:'xk', teacher:'（模拟）', real:'partial', req:true, term:'t2',
+   exam:'考试', cap:110, taken:62, rate:4.1,
+   slots:[{day:4, start:3, len:2, weeks:'2-17', room:'精诚楼203'}]},
+  {id:'t210', code:'S0400750', name:'工程认识实习', credit:1.0, module:'sj', teacher:'（模拟）', real:'partial', req:true, term:'t2',
+   exam:'考查', cap:120, taken:40, rate:3.6,
+   slots:[{day:5, start:1, len:2, weeks:'2-17', room:'工训中心'}]},
+  {id:'t211', code:'S0403470', name:'数字逻辑电路实验', credit:1.0, module:'sj', teacher:'（模拟）', real:'partial', req:true, term:'t2',
+   exam:'考查', cap:100, taken:45, rate:3.7,
+   slots:[{day:5, start:3, len:2, weeks:'2-17', room:'精诚楼305'}]},
+  {id:'t212', code:'S0404521', name:'电路与电子线路实验1', credit:1.0, module:'sj', teacher:'（模拟）', real:'partial', req:true, term:'t2',
+   exam:'考查', cap:100, taken:48, rate:3.5,
+   slots:[{day:5, start:5, len:2, weeks:'2-17', room:'精诚楼307'}]},
+  {id:'t213', code:'S0718160', name:'大学物理实验C', credit:1.0, module:'sj', teacher:'（模拟）', real:'partial', req:true, term:'t2',
+   exam:'考查', cap:100, taken:52, rate:3.4,
+   slots:[{day:5, start:7, len:2, weeks:'2-17', room:'实验楼101'}]},
+  {id:'t214', code:'A1107530', name:'新工科英语', credit:3.0, module:'wy', teacher:'（模拟）', real:'partial', req:true, term:'t2',
+   exam:'考试', cap:60, taken:20, rate:4.0,
+   slots:[{day:4, start:5, len:2, weeks:'2-17', room:'正心楼515'},
+          {day:6, start:1, len:2, weeks:'2-17', room:'正心楼515'}]}
+];
+
+COURSES.push(...T2_COURSES);
+
+/* 归一化：term 默认 t1；rate 取自 RATES；课外/英语拓展类课程两个学期都可选 */
+COURSES.forEach(c => {
+  c.term = c.term || 't1';
+  if(typeof c.rate !== 'number') c.rate = RATES[c.id] || 3.5;
+  if(c.id === 'm01' || c.id === 'm02' || c.id === 'm03' ||
+     c.id === 'm06' || c.id === 'm07' ||
+     c.id === 'm04' || c.id === 'm05' || c.id === 'm08') c.term = 'any';
+  /* 培养方案里的「建议修读学期」：1 = 第 1 学期，2 = 第 2 学期 */
+  const ST1 = {'m04':1, 'm05':1, 'm08':1, 's01':1, 's02':1, 's03':1};
+  c.st = c.st || ST1[c.id] || (c.term === 't2' || c.term === 'any' ? 2 : 1);
+});
+
+const STORAGE_KEY = 'hdu-xk-planner-v4';
+const WEIGHT_DEFS = [
+  {key:'module',  label:'模块缺口'},
+  {key:'want',    label:'想上课程'},
+  {key:'compact', label:'时间紧凑'},
+  {key:'easy',    label:'选上把握'},
+  {key:'rate',    label:'教师口碑'}
+];
+
+function isoPlus(days, h, m){
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  d.setHours(h, m, 0, 0);
+  const p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+
+function defaultState(){
+  return {
+    wanted: ['r01','r02','r03','r04','r05','r06','r07','r08','r09','r10','r11','r12','r13',
+             'm01','m02','m03','m06','m07','m04','m05','m08'],
+    weights: {module:35, want:25, compact:20, easy:20, rate:15},
+    maxCredit: 30,
+    term: 't1',
+    retake: [],
+    schedule: [
+      {id:'e1', title:'第一轮选课开放（示例）', at: isoPlus(3, 9, 0)},
+      {id:'e2', title:'第一轮选课截止（示例）', at: isoPlus(6, 22, 0)}
+    ],
+    need: {ts:31.5, xd:1, xk:9, wy:8, sj:6, kw:9, sx:3},
+    done: {ts:0,    xd:0, xk:0, wy:0, sj:0, kw:0, sx:0}
+  };
+}
+
+function loadState(){
+  const s = defaultState();
+  try{
+    if(typeof localStorage === 'undefined') return s;
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return s;
+    const p = JSON.parse(raw);
+    if(Array.isArray(p.wanted)) s.wanted = p.wanted.filter(id => COURSES.some(c => c.id === id));
+    if(p.weights) Object.assign(s.weights, p.weights);
+    if(typeof p.maxCredit === 'number') s.maxCredit = p.maxCredit;
+    if(p.term === 't2' || p.term === 't1') s.term = p.term;
+    if(Array.isArray(p.retake)) s.retake = p.retake.filter(id => COURSES.some(c => c.id === id));
+    if(Array.isArray(p.schedule)) s.schedule = p.schedule.filter(e => e && e.at && e.title);
+    if(p.need) Object.assign(s.need, p.need);
+    if(p.done) Object.assign(s.done, p.done);
+  }catch(e){}
+  return s;
+}
+
+let state = loadState();
+
+/* 把 state.retake 应用到课程对象上 */
+COURSES.forEach(c => { c.retake = state.retake.includes(c.id); });
+
+function saveState(){
+  try{
+    if(typeof localStorage === 'undefined') return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }catch(e){}
+}
+
+/* =========================================================
+   周次与冲突
+   ========================================================= */
+function parseWeeks(str){
+  const set = new Set();
+  String(str || '').split(/[,，]/).forEach(part => {
+    let p = part.trim().replace(/[（()）]/g, '').replace(/周/g, '').trim();
+    if(!p) return;
+    let parity = 0;
+    if(p.endsWith('单')){ parity = 1; p = p.slice(0, -1); }
+    else if(p.endsWith('双')){ parity = 2; p = p.slice(0, -1); }
+    p = p.trim();
+    const m = p.match(/^(\d+)\s*[-~]\s*(\d+)$/);
+    if(m){
+      const a = +m[1], b = +m[2];
+      for(let w = a; w <= b; w++){
+        if(parity === 1 && w % 2 === 0) continue;
+        if(parity === 2 && w % 2 === 1) continue;
+        set.add(w);
+      }
+    }else if(/^\d+$/.test(p)){
+      const w = +p;
+      if(parity === 1 && w % 2 === 0) return;
+      if(parity === 2 && w % 2 === 1) return;
+      set.add(w);
+    }
+  });
+  return set;
+}
+
+/* 预编译：解析周次、标记是否有固定时段 */
+function compileCourses(){
+  COURSES.forEach(c => {
+    c.slots = (c.slots || []).map(s => ({
+      day: s.day, start: s.start, len: s.len, room: s.room || '',
+      weeks: parseWeeks(s.weeks), weeksText: s.weeks
+    }));
+    c.fixed = c.slots.some(s => s.day > 0 && s.len > 0);
+    c.slots = c.slots.filter(s => s.day > 0 && s.len > 0);
+  });
+}
+const BUILTIN_SRC = JSON.parse(JSON.stringify(COURSES));
+compileCourses();
+
+const byId = id => COURSES.find(c => c.id === id);
+const rawP = c => Math.max(0.05, Math.min(0.95, (c.cap - c.taken) / c.cap));
+/* 重修班名额通常远少于正常班，把握按 0.6 折算 */
+const pOf = c => c.retake ? Math.max(0.05, rawP(c) * 0.6) : rawP(c);
+const remainOf = c => c.cap - c.taken;
+const pClass = p => p >= 0.6 ? 'p-hi' : p >= 0.25 ? 'p-mid' : 'p-low';
+const slotText = s => (s.day >= 1 ? DAYS[s.day-1] : '无固定') + ' ' + s.start + '-' + (s.start + s.len - 1) + '节';
+const timeLabel = c => c.fixed ? c.slots.map(s => DAYS[s.day-1] + ' ' + s.start + '-' + (s.start + s.len - 1)).join(' / ') : '无固定时间';
+
+/* 周次压缩显示 */
+function weeksText(set){
+  if(!set || !set.size) return '';
+  const arr = [...set].sort((a, b) => a - b);
+  if(!arr.length) return '';
+  const lo = arr[0], hi = arr[arr.length - 1];
+  const allOdd = arr.every(w => w % 2 === 1);
+  const allEven = arr.every(w => w % 2 === 0);
+  if(lo === hi) return lo + '周';
+  if(allOdd && arr.length >= 2 && (hi - lo) / 2 + 1 === arr.length) return lo + '-' + hi + '单';
+  if(allEven && arr.length >= 2 && (hi - lo) / 2 + 1 === arr.length) return lo + '-' + hi + '双';
+  if(hi - lo + 1 === arr.length) return lo + '-' + hi + '周';
+  if(arr.length > 6) return lo + '-' + hi + '周(部分)';
+  return arr.join(',') + '周';
+}
+
+function slotsClash(a, b){
+  if(a.day !== b.day) return false;
+  const ea = a.start + a.len - 1, eb = b.start + b.len - 1;
+  if(ea < b.start || eb < a.start) return false;
+  for(const w of a.weeks) if(b.weeks.has(w)) return true;
+  return false;
+}
+function conflict(c1, c2){
+  for(const s1 of c1.slots) for(const s2 of c2.slots) if(slotsClash(s1, s2)) return true;
+  return false;
+}
+
+/* 冲突细节：用于「未纳入」说明，给出具体冲突周次 */
+function conflictDetail(c, sched){
+  const hits = [];
+  for(const o of sched){
+    if(o.id === c.id) continue;
+    for(const s1 of c.slots) for(const s2 of o.slots){
+      if(slotsClash(s1, s2)){
+        const common = [...s1.weeks].filter(w => s2.weeks.has(w));
+        hits.push({other:o, weeks:common});
+      }
+    }
+  }
+  return hits;
+}
+
+/* =========================================================
+   方案引擎
+   ========================================================= */
+function moduleGap(m){ return Math.max(0, state.need[m] - state.done[m]); }
+
+/* 只在"当前学期"判定为未抢到；换到后续学期，同一门课会重新出现在候选池里 */
+function isFailedNow(c){ return c.status === 'failed' && c.term === state.term; }
+const sameTerm = c => c.term === state.term || c.term === 'any';
+const termIdx = () => state.term === 't2' ? 2 : 1;
+/* 早于培养方案建议修读学期 */
+const isEarly = c => (c.st || 1) > termIdx();
+
+function evaluate(sched, w){
+  const byMod = {};
+  for(const m in MODULES) byMod[m] = 0;
+  let credit = 0;
+  sched.forEach(c => { credit += c.credit; byMod[c.module] += c.credit; });
+
+  let gapTotal = 0, gapCover = 0;
+  for(const m in MODULES){
+    const g = moduleGap(m);
+    gapTotal += g;
+    gapCover += Math.min(g, byMod[m]);
+  }
+  const moduleCover = gapTotal > 0 ? gapCover / gapTotal : 1;
+
+  const wanted = state.wanted.map(byId).filter(c => c && sameTerm(c));
+  const inIds = new Set(sched.map(c => c.id));
+  const wantCover = wanted.length ? wanted.filter(c => inIds.has(c.id)).length / wanted.length : 1;
+
+  /* 空档：按「占用格子」统计，忽略周次差异 */
+  const occ = [{},{},{},{},{},{},{}];
+  sched.forEach(c => c.slots.forEach(s => {
+    for(let i = 0; i < s.len; i++) occ[s.day-1][s.start+i] = 1;
+  }));
+  let gaps = 0, used = 0;
+  for(let d = 0; d < 7; d++){
+    const ss = Object.keys(occ[d]).map(Number);
+    if(!ss.length) continue;
+    used += ss.length;
+    gaps += Math.max(...ss) - Math.min(...ss) + 1 - ss.length;
+  }
+  const compact = Math.max(0, 1 - gaps / 16);
+
+  /* 把握只统计「非必修」，必修是预置项，不参与抢课概率 */
+  const elective = sched.filter(c => !c.req);
+  const easy = elective.length
+    ? elective.reduce((s, c) => s + pOf(c), 0) / elective.length
+    : 1;
+
+  const target = Math.min(state.maxCredit, gapTotal > 0 ? gapTotal : state.maxCredit);
+  const volume = target > 0 ? Math.min(1, credit / target) : 1;
+
+  /* 教师口碑：按学分加权，避免 1 学分课拉偏 */
+  const rated = sched.filter(c => c.rate > 0);
+  const ratedCredit = rated.reduce((s, c) => s + c.credit, 0);
+  const rateScore = ratedCredit > 0
+    ? rated.reduce((s, c) => s + c.rate * c.credit, 0) / ratedCredit / 5
+    : 0.6;
+
+  const wRate = w.rate || 0;
+  const ws = w.module + w.want + w.compact + w.easy + wRate + 15 || 1;
+  const score = 100 * (w.module * moduleCover + w.want * wantCover + w.compact * compact +
+                       w.easy * easy + wRate * rateScore + 15 * volume) / ws;
+
+  return {credit, moduleCover, wantCover, compact, easy, rateScore, volume, score, gaps, used, byMod};
+}
+
+/* 枚举所有「极大」可行组合，带节点预算；base 为已锁定的必修课 */
+function enumerate(pool, maxCredit, budget, base){
+  const n = pool.length;
+  const chosen = (base || []).slice();
+  const baseCredit = chosen.reduce((s, c) => s + c.credit, 0);
+  const out = [];
+  let nodes = 0, stop = false;
+
+  function fits(c){
+    for(const o of chosen){
+      if(conflict(c, o)) return false;
+      if(c.group && o.group && c.group === o.group) return false;  /* 同课程组互斥 */
+    }
+    return true;
+  }
+
+  function dfs(startI, credit){
+    if(stop) return;
+    if(++nodes > budget){ stop = true; return; }
+    let extended = false;
+    for(let i = startI; i < n; i++){
+      const c = pool[i];
+      if(credit + c.credit > maxCredit) continue;
+      if(!fits(c)) continue;
+      extended = true;
+      chosen.push(c);
+      dfs(i + 1, credit + c.credit);
+      chosen.pop();
+      if(stop) return;
+    }
+    if(!extended) out.push(chosen.slice());
+  }
+
+  dfs(0, baseCredit);
+  return out;
+}
+
+function pickBest(pool, w, excludeKeys, base){
+  const cands = enumerate(pool, state.maxCredit, 90000, base);
+  let best = null, bestScore = -1;
+  for(const sched of cands){
+    const key = sched.map(c => c.id).sort().join(',');
+    if(excludeKeys && excludeKeys.has(key)) continue;
+    const m = evaluate(sched, w);
+    if(m.score > bestScore){ bestScore = m.score; best = {sched, metrics:m}; }
+  }
+  return best;
+}
+
+function buildSolutions(){
+  const w = state.weights;
+  /* 必修课锁定：任何方案都必须包含，不参与搜索 */
+  const base = COURSES.filter(c => c.req && sameTerm(c));
+  const poolAll = COURSES.filter(c => {
+    if(c.req || isFailedNow(c)) return false;
+    /* 跨学期的待补课（如四史）在后续学期重新可选 */
+    if(!sameTerm(c) && c.status !== 'failed') return false;
+    return moduleGap(c.module) > 0 || state.wanted.includes(c.id);
+  });
+  const prep = arr => arr.slice().sort((a, b) => {
+    const aw = state.wanted.includes(a.id) ? 0 : 1;
+    const bw = state.wanted.includes(b.id) ? 0 : 1;
+    if(aw !== bw) return aw - bw;
+    return pOf(a) - pOf(b);
+  });
+
+  const poolA = prep(poolAll);
+  const poolB = prep(poolAll.filter(c => pOf(c) >= 0.60));
+  const poolC = prep(poolAll.filter(c => pOf(c) >= 0.80));
+
+  const wA = {...w};
+  const wB = {...w, easy: w.easy + 25};
+  const wC = {...w, easy: w.easy + 60, compact: w.compact + 15};
+
+  const used = new Set();
+  const A = pickBest(poolA, wA, null, base);
+  if(A) used.add(A.sched.map(c => c.id).sort().join(','));
+  const B = pickBest(poolB.length ? poolB : poolA, wB, used, base);
+  if(B) used.add(B.sched.map(c => c.id).sort().join(','));
+  const C = pickBest(poolC.length ? poolC : poolB.length ? poolB : poolA, wC, used, base);
+
+  const out = [];
+  if(A) out.push({key:'A', name:'冲高方案', desc:'按你的权重求最优，覆盖优先', sched:A.sched, metrics:evaluate(A.sched, state.weights)});
+  if(B) out.push({key:'B', name:'稳妥方案', desc:'选修把握≥60%，降低落空风险', sched:B.sched, metrics:evaluate(B.sched, state.weights)});
+  if(C) out.push({key:'C', name:'保底方案', desc:'选修把握≥80%，先保底后覆盖', sched:C.sched, metrics:evaluate(C.sched, state.weights)});
+  return out;
+}
+
+function explainMissing(sched){
+  const inIds = new Set(sched.map(c => c.id));
+  const res = [];
+  for(const id of state.wanted){
+    if(inIds.has(id)) continue;
+    const c = byId(id);
+    if(!c) continue;
+    const hits = conflictDetail(c, sched);
+    const sameGroup = c.group ? sched.find(o => o.group === c.group) : null;
+    let reason;
+    if(hits.length){
+      const h = hits[0];
+      const wt = h.weeks.length ? ('第' + weeksText(new Set(h.weeks)).replace(/周$/, '') + '周') : '';
+      reason = '与 ' + h.other.name + ' 时间冲突' + (wt ? '（' + wt + '重叠）' : '');
+    }else if(sameGroup){
+      reason = '与 ' + sameGroup.name + ' 属同一课程组，只能选一门';
+    }else if(sched.reduce((s, x) => s + x.credit, 0) + c.credit > state.maxCredit){
+      reason = '超出学分上限 ' + state.maxCredit;
+    }else{
+      reason = '未进入本次搜索的最优解';
+    }
+    res.push({course:c, reason});
+  }
+  return res;
+}
+
+/* 备选课：同类模块、与其余已选不冲突、把握最高；有固定时段的课只配固定时段的备选 */
+function findBackup(c, sched, excludeIds){
+  const others = sched.filter(x => x.id !== c.id);
+  const inIds = new Set(sched.map(x => x.id));
+  const cands = COURSES.filter(d =>
+    d.id !== c.id && !inIds.has(d.id) && d.module === c.module &&
+    !d.req && !(excludeIds && excludeIds.has(d.id)) &&
+    (c.fixed ? d.fixed : true) &&
+    others.every(o => !conflict(o, d))
+  ).sort((a, b) => pOf(b) - pOf(a));
+  return cands[0] || null;
+}
+
+/* 生成清单：重修置顶 → 选修（越难抢越先）→ 其余必修 */
+function buildQueue(sched){
+  const rank = c => c.retake ? 0 : (c.req ? 2 : 1);
+  const list = sched.slice().sort((a, b) => {
+    if(rank(a) !== rank(b)) return rank(a) - rank(b);
+    if(rank(a) === 2){
+      const da = a.slots.length ? a.slots[0].day : 9;
+      const db = b.slots.length ? b.slots[0].day : 9;
+      if(da !== db) return da - db;
+      return (a.slots[0] ? a.slots[0].start : 0) - (b.slots[0] ? b.slots[0].start : 0);
+    }
+    return pOf(a) - pOf(b);
+  });
+  const used = new Set();
+  const rows = list.map(c => ({course:c, backup:null, pre:!!c.req}));
+  rows.filter(r => !r.pre).forEach(r => {
+    const b = findBackup(r.course, sched, used);
+    if(b){ r.backup = b; used.add(b.id); }
+  });
+  rows.filter(r => !r.pre && !r.backup).forEach(r => { r.backup = findBackup(r.course, sched, null); });
+  return rows;
+}
+
+/* =========================================================
+   渲染
+   ========================================================= */
+let view = {sols: [], active: 0};
+let poolFilter = 'all';
+
+function $(id){ return document.getElementById(id); }
+
+function renderPlanRows(){
+  const box = $('planRows');
+  if(!box) return;
+  box.innerHTML = Object.keys(MODULES).map(m => {
+    const M = MODULES[m];
+    return `<div class="plan-row">
+      <span class="nm"><span class="dot" style="background:${M.color}"></span>${M.name}</span>
+      <input type="number" min="0" max="60" step="1" value="${state.done[m]}" data-k="done" data-m="${m}">
+      <input type="number" min="0" max="60" step="1" value="${state.need[m]}" data-k="need" data-m="${m}">
+    </div>`;
+  }).join('');
+}
+
+function renderWeights(){
+  const box = $('weights');
+  if(!box) return;
+  box.innerHTML = WEIGHT_DEFS.map(d => `
+    <div class="w-row">
+      <span class="lb">${d.label}</span>
+      <input type="range" min="0" max="60" step="5" value="${state.weights[d.key]}" data-k="${d.key}">
+      <span class="v">${state.weights[d.key]}</span>
+    </div>`).join('');
+  const mc = $('maxCredit');
+  if(mc) mc.value = state.maxCredit;
+}
+
+function renderChips(){
+  const box = $('chips');
+  if(!box) return;
+  const items = [{k:'all', t:'全部'}].concat(Object.keys(MODULES).map(m => ({k:m, t:MODULES[m].name})));
+  box.innerHTML = items.map(i =>
+    `<button class="chip ${poolFilter === i.k ? 'on' : ''}" data-f="${i.k}">${i.t}</button>`
+  ).join('');
+}
+
+function renderPool(){
+  const box = $('pool');
+  if(!box) return;
+  const list = COURSES.filter(c => (sameTerm(c) || (c.status === 'failed' && !isFailedNow(c))) &&
+    (poolFilter === 'all' || c.module === poolFilter));
+  if(!list.length){ box.innerHTML = '<div class="empty">该模块暂无课程</div>'; return; }
+  box.innerHTML = list.map(c => {
+    const on = state.wanted.includes(c.id);
+    const p = pOf(c);
+    const failed = isFailedNow(c);
+    const tag = c.real === 'partial'
+      ? '<span class="tag partial">课名真实·参数待核</span>'
+      : (c.real ? '<span class="tag real">真实</span>' : '<span class="tag mock">模拟</span>');
+    const t1 = c.fixed
+      ? (DAYS[c.slots[0].day-1] + ' ' + c.slots[0].start + '-' + (c.slots[0].start + c.slots[0].len - 1) + (c.slots.length > 1 ? ' +' + (c.slots.length - 1) : ''))
+      : '无固定时间';
+    const right = failed
+      ? '<span class="tag failed">未抢到</span>'
+      : (c.req ? '<span class="tag req">必修</span>' : `<span class="pct ${pClass(p)}">${Math.round(p * 100)}%</span>`);
+    return `<button class="row ${on ? 'on' : ''} ${failed ? 'off' : ''}" data-id="${c.id}" title="${c.teacher} · ${weeksText(c.slots[0] ? c.slots[0].weeks : new Set())} · 余量 ${remainOf(c)}/${c.cap}">
+      <span class="bar" style="background:${MODULES[c.module].color}"></span>
+      <span>
+        <span class="nm">${c.name}${tag}</span>
+        <span class="meta">${c.credit} 学分 · ${c.teacher} · ★${c.rate.toFixed(1)} · ${MODULES[c.module].name}${isEarly(c) ? ' · 建议第' + c.st + '学期' : ''}</span>
+      </span>
+      <span class="tail">
+        <span class="tm">${t1}</span>
+        ${right}
+      </span>
+    </button>`;
+  }).join('');
+  const vis = COURSES.filter(c => sameTerm(c) || (c.status === 'failed' && !isFailedNow(c)));
+  $('statReal').textContent = vis.filter(c => c.real === true).length;
+  $('statPartial').textContent = vis.filter(c => c.real === 'partial').length;
+  $('statMock').textContent = vis.filter(c => !c.real).length;
+  $('statWant').textContent = state.wanted.length;
+}
+
+function renderTimetable(){
+  const axis = $('ttAxis'), cols = $('ttCols');
+  if(!axis || !cols) return;
+  const ROW = 34;
+  axis.innerHTML = Array.from({length:12}, (_, i) => `<div>${i+1}</div>`).join('');
+
+  const sol = view.sols[view.active];
+  const sched = sol ? sol.sched : [];
+  cols.innerHTML = Array.from({length:7}, (_, d) => {
+    /* 收集当天的所有时段；同一格子内不同周次的课并排显示 */
+    const items = [];
+    sched.forEach(c => c.slots.forEach(s => { if(s.day === d + 1) items.push({c, s}); }));
+    items.sort((a, b) => a.s.start - b.s.start || a.s.len - b.s.len);
+
+    const clusters = [];
+    items.forEach(it => {
+      const end = it.s.start + it.s.len - 1;
+      let cl = clusters.find(g => g.some(x => !(x.s.start + x.s.len - 1 < it.s.start || end < x.s.start)));
+      if(!cl){ cl = []; clusters.push(cl); }
+      cl.push(it);
+    });
+    clusters.forEach(cl => {
+      const lanesEnd = [];
+      cl.forEach(it => {
+        let lane = 0;
+        while(lanesEnd[lane] !== undefined && lanesEnd[lane] >= it.s.start) lane++;
+        lanesEnd[lane] = it.s.start + it.s.len - 1;
+        it.lane = lane;
+      });
+      cl.forEach(it => { it.lanes = lanesEnd.length; });
+    });
+
+    const blocks = items.map(it => {
+      const {c, s} = it;
+      const M = MODULES[c.module];
+      const lanes = it.lanes || 1;
+      const w = lanes > 1 ? `calc((100% - 4px)/${lanes})` : 'calc(100% - 6px)';
+      const l = lanes > 1 ? `calc(2px + (100% - 4px)/${lanes}*${it.lane})` : '3px';
+      return `<div class="blk ${lanes > 1 ? 'narrow' : ''}" title="${c.name} · ${c.teacher} · ${slotText(s)} · ${weeksText(s.weeks)} · ${s.room}"
+        style="top:${(s.start-1)*ROW+1}px;height:${s.len*ROW-2}px;left:${l};width:${w};background:${M.color}14;border-left-color:${M.color}">
+        <b>${c.name}</b><i>${isEarly(c) ? '⚠ ' : ''}${weeksText(s.weeks)}${lanes > 1 ? '' : ' · ' + s.room.split('/')[0]}</i>
+      </div>`;
+    }).join('');
+
+    const cells = Array.from({length:12}, () => '<div class="cell"></div>').join('');
+    return `<div class="tt-col">${cells}${blocks}</div>`;
+  }).join('');
+
+  $('ttName').textContent = sol ? sol.name : '尚未生成';
+
+  /* 无固定时段课程 */
+  const floatBar = $('floatBar');
+  const floats = sched.filter(c => !c.fixed);
+  if(floats.length){
+    floatBar.style.display = 'flex';
+    floatBar.innerHTML = '<b>无固定时段</b>' + floats.map(c =>
+      `<span class="pill">${c.name} · ${c.credit}学分${c.real ? '' : ' · 模拟'}</span>`).join('');
+  }else{
+    floatBar.style.display = 'none';
+    floatBar.innerHTML = '';
+  }
+
+  const sum = $('ttSum');
+  if(!sol){
+    sum.innerHTML = '<span style="color:#94a3b8">生成方案后，这里会显示学分、想上覆盖与空档统计</span>';
+    return;
+  }
+  const m = sol.metrics;
+  /* 与体检基准一致时只显示一个学分；不一致时分开标注，避免同屏两个数字打架 */
+  const baseCredit = baselineSchedule().reduce((s, c) => s + c.credit, 0);
+  const sameAsBase = Math.abs(m.credit - baseCredit) < 0.005;
+  const creditCell = sameAsBase
+    ? `<span><span class="k">学分</span><b>${m.credit.toFixed(2).replace(/\.00$/, '')}</b> / ${state.maxCredit}</span>`
+    : `<span><span class="k">本方案学分</span><b>${m.credit.toFixed(2).replace(/\.00$/, '')}</b> / ${state.maxCredit}
+         <span style="color:#94a3b8">（体检基准 ${baseCredit.toFixed(2).replace(/\.00$/, '')}，差 ${(baseCredit - m.credit).toFixed(2).replace(/\.00$/, '')} 学分）</span></span>`;
+  sum.innerHTML = `
+    ${creditCell}
+    <span><span class="k">想上覆盖</span><b>${Math.round(m.wantCover*100)}%</b></span>
+    <span><span class="k">模块目标达成</span><b>${Math.round(m.moduleCover*100)}%</b></span>
+    <span><span class="k">空档</span><b>${m.gaps}</b> 节</span>
+    <span><span class="k">选修平均把握</span><b>${Math.round(m.easy*100)}%</b></span>`;
+}
+
+function bar(label, v){
+  return `<div class="bar-row"><span>${label}</span><span class="t"><i style="width:${Math.max(2, Math.round(v*100))}%"></i></span><span class="n">${Math.round(v*100)}</span></div>`;
+}
+
+function renderSolutions(){
+  const box = $('sols');
+  if(!box) return;
+  if(!view.sols.length){
+    box.innerHTML = '<div class="empty">还没有可行方案，试着勾选几门课或调高学分上限</div>';
+    return;
+  }
+  box.innerHTML = view.sols.map((s, i) => `
+    <button class="sol ${i === view.active ? 'on' : ''}" data-i="${i}">
+      <span class="sol-top"><b>${s.name}</b><span class="sc">${s.metrics.score.toFixed(1)}<small>分</small></span></span>
+      <span class="sol-desc">${s.desc} · ${s.sched.length} 门 / ${s.metrics.credit} 学分</span>
+      <span class="bars">
+        ${bar('模块目标', s.metrics.moduleCover)}
+        ${bar('想上覆盖', s.metrics.wantCover)}
+        ${bar('时间紧凑', s.metrics.compact)}
+        ${bar('选修把握', s.metrics.easy)}
+        ${bar('教师口碑', s.metrics.rateScore)}
+      </span>
+    </button>`).join('');
+
+  const sol = view.sols[view.active];
+  const miss = $('miss');
+  if(!sol){ miss.innerHTML = ''; return; }
+  const ms = explainMissing(sol.sched);
+  const grp = ms.filter(x => x.reason.indexOf('同一课程组') >= 0);
+  const rest = ms.filter(x => x.reason.indexOf('同一课程组') < 0);
+  let html = rest.map(x =>
+    `<div class="mi"><span>未纳入</span><span><b>${x.course.name}</b> —— ${x.reason}</span></div>`).join('');
+  if(grp.length){
+    html += `<div class="mi"><span>同组</span><span><b>${grp.length} 门</b>同课程组候选未纳入：${
+      grp.map(x => x.course.name).join('、')}（每组只能选一门）</span></div>`;
+  }
+  miss.innerHTML = html;
+}
+
+function renderQueue(){
+  const box = $('qBody');
+  if(!box) return;
+  const sol = view.sols[view.active];
+  if(!sol){ box.innerHTML = '<div class="empty">生成方案后，这里给出按顺序执行的抢课清单</div>'; return; }
+
+  const rows = buildQueue(sol.sched);
+  box.innerHTML = `<table class="q">
+    <thead><tr>
+      <th style="width:52px">顺序</th><th>课程</th><th style="width:150px">时间</th>
+      <th style="width:110px">周次</th><th style="width:100px">余量 / 容量</th>
+      <th style="width:110px">抢中把握</th><th style="width:220px">备选（没抢到时）</th>
+    </tr></thead>
+    <tbody>${rows.map((r, i) => {
+      const c = r.course, bk = r.backup;
+      const wk = c.slots.length ? weeksText(c.slots[0].weeks) : '—';
+      return `<tr>
+        <td><span class="no">${i+1}</span></td>
+        <td><div class="cn">${c.name}${c.real === true ? '' : (c.real === 'partial' ? '<span class="tag partial">待核</span>' : '<span class="tag mock">模拟</span>')}${c.retake ? '<span class="tag failed">重修</span>' : ''}</div>
+            <div class="cm">${c.teacher} · ${c.credit} 学分 · ★${c.rate.toFixed(1)} · ${MODULES[c.module].name}</div></td>
+        <td>${timeLabel(c)}</td>
+        <td style="font-size:12px;color:#475569">${wk}</td>
+        <td>${r.pre ? '<span class="wk">—</span>' : remainOf(c) + ' / ' + c.cap}</td>
+        <td>${r.pre ? (c.retake ? `<span class="pct ${pClass(pOf(c))}">${Math.round(pOf(c)*100)}%</span>` : '<span class="pre">预置</span>') : `<span class="pct ${pClass(pOf(c))}">${Math.round(pOf(c)*100)}%</span>`}</td>
+        <td>${c.retake ? '<span class="wk">重修班名额少，开抢即提交，并在首轮确认是否与正常课冲突</span>'
+          : (r.pre ? '<span class="wk">必修课，按期上课即可</span>'
+          : (bk ? `<span class="bk">${bk.name}</span><div class="wk">${timeLabel(bk)} · ${Math.round(pOf(bk)*100)}%</div>` : '<span class="wk">同类无可用替代</span>'))}</td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+  const nE = rows.filter(r => !r.pre).length;
+  const nR = rows.filter(r => r.course.retake).length;
+  $('qNote').textContent = '当前：' + sol.name + ' · 选修 ' + nE + ' 门（越难抢越先） + 必修 ' +
+    (rows.length - nE) + ' 门预置' + (nR ? ' · 重修 ' + nR + ' 门置顶' : '');
+}
+
+function renderTodo(){
+  const card = $('todoCard'), body = $('todoBody');
+  if(!card || !body) return;
+  const failed = COURSES.filter(c => c.status === 'failed');
+  if(!failed.length){ card.style.display = 'none'; return; }
+  card.style.display = 'block';
+
+  const gapByMod = {};
+  failed.forEach(c => { gapByMod[c.module] = (gapByMod[c.module] || 0) + c.credit; });
+
+  body.innerHTML = `<table class="q">
+    <thead><tr>
+      <th style="width:52px">顺序</th><th>课程</th><th style="width:120px">模块</th>
+      <th style="width:70px">学分</th><th style="width:100px">状态</th><th>建议</th>
+    </tr></thead>
+    <tbody>${failed.map((c, i) => `<tr>
+      <td><span class="no">${i+1}</span></td>
+      <td><div class="cn">${c.name}<span class="tag partial">参数待核</span></div>
+          <div class="cm">${c.teacher} · ${c.exam}</div></td>
+      <td>${MODULES[c.module].name}</td>
+      <td>${c.credit}</td>
+      <td><span class="tag failed">${isFailedNow(c) ? '未抢到' : '可重选'}</span></td>
+      <td class="wk">${isFailedNow(c)
+        ? '无固定时段，不与其他课冲突；下轮选课首轮即提交，' + MODULES[c.module].name + '仍缺 ' + gapByMod[c.module] + ' 学分' +
+          (c.module === 'sx' ? '；建议大二结束前修完，大三大四要留给比赛、实习与考研' : '')
+        : '本学期已重新开放，可在左侧课程池中直接勾选'}</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+  $('todoNote').textContent = '共 ' + failed.length + ' 门、' + failed.reduce((s, c) => s + c.credit, 0).toFixed(2) +
+    ' 学分未到手，已计入模块缺口，但不会出现在本轮课表与抢课清单里';
+}
+
+function renderRetake(){
+  const body = $('retakeBody'), sel = $('retakeSel');
+  if(!body || !sel) return;
+  const marks = COURSES.filter(c => c.retake);
+  const opts = COURSES.filter(c => c.req && !c.retake);
+  sel.innerHTML = opts.length
+    ? opts.map(c => `<option value="${c.id}">${c.name}（${c.credit} 学分）</option>`).join('')
+    : '<option value="">（无可标记课程）</option>';
+
+  if(!marks.length){
+    body.innerHTML = '<div class="empty">还没有标记重修。挂科后在这里标记，工具会把该课提到抢课清单最前，并按重修班名额折算把握。</div>';
+    return;
+  }
+  body.innerHTML = `<table class="q">
+    <thead><tr>
+      <th style="width:52px">优先</th><th>课程</th><th style="width:130px">模块</th>
+      <th style="width:70px">学分</th><th style="width:110px">正常班把握</th>
+      <th style="width:110px">重修班把握</th><th style="width:96px">操作</th>
+    </tr></thead>
+    <tbody>${marks.map((c, i) => `<tr>
+      <td><span class="no">${i+1}</span></td>
+      <td><div class="cn">${c.name}<span class="tag failed">重修</span></div>
+          <div class="cm">${c.teacher} · ${timeLabel(c)}</div></td>
+      <td>${MODULES[c.module].name}</td>
+      <td>${c.credit}</td>
+      <td class="wk">${Math.round(rawP(c) * 100)}%</td>
+      <td><span class="pct ${pClass(pOf(c))}">${Math.round(pOf(c) * 100)}%</span></td>
+      <td><button class="btn-sm" data-unretake="${c.id}" style="padding:4px 10px;font-size:11.5px">取消</button></td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+/* ---------- 体检 ---------- */
+/* 体检基准课表：必修全部 + 想上课程中能无冲突加入的（按把握从高到低贪心）
+   刻意不依赖"当前选中的那套方案"——体检回答的是"我的处境"，不是"这个方案好不好" */
+function baselineSchedule(){
+  const sched = COURSES.filter(c => c.req && sameTerm(c)).slice();
+  let credit = sched.reduce((s, c) => s + c.credit, 0);
+  const pool = COURSES
+    .filter(c => !c.req && !isFailedNow(c) && sameTerm(c) && state.wanted.includes(c.id))
+    .sort((a, b) => pOf(b) - pOf(a));
+  for(const c of pool){
+    if(credit + c.credit > state.maxCredit) continue;
+    if(sched.some(o => conflict(o, c))) continue;
+    if(c.group && sched.some(o => o.group === c.group)) continue;
+    sched.push(c);
+    credit += c.credit;
+  }
+  return sched;
+}
+
+function buildDiagnosis(){
+  const sched = baselineSchedule();
+  const tiles = [];
+
+  const mods = Object.keys(MODULES).filter(m => moduleGap(m) > 0);
+  const creditsOf = m => sched.filter(c => c.module === m).reduce((s, c) => s + c.credit, 0);
+  const touched = mods.filter(m => creditsOf(m) > 0);
+  const worst = mods.map(m => ({m, gap: moduleGap(m) - creditsOf(m)}))
+                    .filter(x => x.gap > 0).sort((a, b) => b.gap - a.gap)[0];
+  tiles.push({
+    label: '模块推进', tone: touched.length === mods.length ? 'ok' : (touched.length ? 'warn' : 'bad'),
+    value: touched.length + ' / ' + mods.length,
+    detail: worst ? '最大缺口：' + MODULES[worst.m].name + ' 还缺 ' + worst.gap.toFixed(2) + ' 学分'
+                  : '各模块本学期均有推进'
+  });
+
+  const reqs = COURSES.filter(c => c.req && sameTerm(c));
+  const missReq = reqs.filter(c => !sched.some(x => x.id === c.id));
+  tiles.push({
+    label: '必修完整', tone: missReq.length ? 'bad' : 'ok',
+    value: (reqs.length - missReq.length) + ' / ' + reqs.length,
+    detail: missReq.length ? '漏排：' + missReq.map(c => c.name).join('、') : '本学期必修已全部排入'
+  });
+
+  const failed = COURSES.filter(c => c.status === 'failed');
+  const failedCredit = failed.reduce((s, c) => s + c.credit, 0);
+  const willOver = credit0 => credit0 + failedCredit > state.maxCredit;
+  const creditNow = sched.reduce((s, c) => s + c.credit, 0);
+  tiles.push({
+    label: '未抢到', tone: failed.length ? 'warn' : 'ok',
+    value: failed.length ? failed.length + ' 门' : '无',
+    detail: failed.length
+      ? failedCredit.toFixed(2) + ' 学分待补' +
+        (willOver(creditNow) ? '；补上后将达 ' + (creditNow + failedCredit).toFixed(2) + '，超出上限 ' + state.maxCredit : '')
+      : '本轮没有落空的课'
+  });
+
+  const rt = COURSES.filter(c => c.retake);
+  tiles.push({
+    label: '重修', tone: rt.length ? 'warn' : 'ok',
+    value: rt.length ? rt.length + ' 门' : '无',
+    detail: rt.length ? '已在清单置顶，把握按重修班折算' : '无挂科重修'
+  });
+
+  let clash = 0;
+  for(let i = 0; i < sched.length; i++)
+    for(let j = i + 1; j < sched.length; j++)
+      if(conflict(sched[i], sched[j])) clash++;
+  tiles.push({
+    label: '时间冲突', tone: clash ? 'bad' : 'ok',
+    value: clash ? clash + ' 处' : '0 处',
+    detail: clash ? '需手动调整，工具不会自动替你取舍' : '周次级检查无冲突'
+  });
+
+  const credit = sched.reduce((s, c) => s + c.credit, 0);
+  const ratio = state.maxCredit > 0 ? credit / state.maxCredit : 0;
+  tiles.push({
+    label: '学分负荷', tone: ratio > 1 ? 'bad' : (ratio > 0.95 ? 'warn' : 'ok'),
+    value: credit.toFixed(2) + ' / ' + state.maxCredit,
+    detail: ratio > 0.95 ? '已接近上限，再加课会很紧'
+                         : '尚有余量 ' + (state.maxCredit - credit).toFixed(2) + ' 学分'
+  });
+
+  const early = sched.filter(isEarly);
+  tiles.push({
+    label: '修读学期', tone: early.length ? 'warn' : 'ok',
+    value: early.length ? early.length + ' 门提前' : '合规',
+    detail: early.length
+      ? '早于培养方案建议学期：' + early.map(c => c.name).join('、')
+      : '所选课程均不早于建议修读学期'
+  });
+
+  const noProgress = mods.filter(m => !touched.includes(m));
+  const issues = [];
+  if(missReq.length) issues.push({tone:'bad', target:'ttCols',
+    chip:'必修漏排 ' + missReq.length + ' 门',
+    text:'有 ' + missReq.length + ' 门必修未排入课表'});
+  if(clash) issues.push({tone:'bad', target:'ttCols',
+    chip:'冲突 ' + clash + ' 处',
+    text:'存在 ' + clash + ' 处时间冲突'});
+  if(early.length) issues.push({tone:'warn', target:'ttCols',
+    chip:'提前修 ' + early.length + ' 门',
+    text: early.length + ' 门课早于建议修读学期（' +
+      early.map(c => c.name).join('、') + '），教务系统可能不放选'});
+  if(noProgress.length) issues.push({tone:'warn', target:'planRows',
+    chip:'模块停滞 ' + noProgress.length + ' 个',
+    text: noProgress.length + ' 个模块本学期无法推进（' +
+      noProgress.map(m => MODULES[m].name).join('、') + '）'});
+  if(failed.length) issues.push({tone:'warn', target:'todoCard',
+    chip:'未抢到 ' + failed.length + ' 门',
+    text: failed.length + ' 门课未抢到，共 ' +
+      failed.reduce((s, c) => s + c.credit, 0).toFixed(2) + ' 学分需后续补'});
+  if(rt.length) issues.push({tone:'warn', target:'retakeCard',
+    chip:'重修 ' + rt.length + ' 门',
+    text: rt.length + ' 门重修需优先抢'});
+
+  let verdict;
+  if(!issues.length){
+    verdict = {tone:'ok', chips:[],
+      text:'课表可直接执行：各模块本学期都有推进、必修齐全、无时间冲突。'};
+  }else{
+    const tone = issues.some(i => i.tone === 'bad') ? 'bad' : 'warn';
+    verdict = {tone, chips: issues,
+      text: '优先处理：' + issues.slice(0, 2).map(i => i.text).join('；') +
+        (issues.length > 2 ? '；另有 ' + (issues.length - 2) + ' 项见下方指标。' : '。')};
+  }
+  return {tiles, verdict};
+}
+
+function renderDiagnosis(){
+  const tilesBox = $('tiles'), vBox = $('verdict');
+  if(!tilesBox || !vBox) return;
+  const {tiles, verdict} = buildDiagnosis();
+  vBox.className = 'verdict ' + verdict.tone;
+  if(!verdict.chips || !verdict.chips.length){
+    vBox.innerHTML = '<b>结论：</b><span>' + verdict.text + '</span>';
+  }else{
+    vBox.innerHTML = '<b>结论：</b><span>优先处理</span>' +
+      verdict.chips.map(c => `<button class="chip2 ${c.tone}" data-go="${c.target}" title="${c.text}">${c.chip}</button>`).join('') +
+      '<span class="chip-tip">点击可定位</span>';
+  }
+
+  const pass = tiles.filter(t => t.tone === 'ok').length;
+  const warn = tiles.filter(t => t.tone === 'warn').length;
+  const bad = tiles.filter(t => t.tone === 'bad').length;
+  const sum = $('diagSum');
+  if(sum) sum.innerHTML = '检查 ' + tiles.length + ' 项 · 通过 <b>' + pass + '</b>' +
+    (warn ? ' · 关注 <b>' + warn + '</b>' : '') + (bad ? ' · 不通过 <b>' + bad + '</b>' : '');
+
+  const t = $('diagTime');
+  if(t){
+    const d = new Date();
+    const p = n => String(n).padStart(2, '0');
+    t.textContent = '检查于 ' + p(d.getMonth()+1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  tilesBox.innerHTML = tiles.map(x => {
+    const ic = x.tone === 'ok' ? '✓' : (x.tone === 'warn' ? '!' : '×');
+    return `<div class="tile ${x.tone}">
+      <div class="lb"><span class="ic ${x.tone}">${ic}</span>${x.label}</div>
+      <div class="vl">${x.value}</div>
+      <div class="dt">${x.detail}</div>
+    </div>`;
+  }).join('');
+}
+
+/* 体检报告：把检查结果导出成一份可读的诊断单 */
+function buildReport(){
+  const {tiles, verdict} = buildDiagnosis();
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  const stamp = d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate()) + ' ' +
+                p(d.getHours()) + ':' + p(d.getMinutes());
+  const termName = state.term === 't2' ? '大一下' : '大一上';
+  const lines = [];
+  lines.push('选课体检报告');
+  lines.push('生成时间：' + stamp + '　学期：' + termName);
+  lines.push('='.repeat(40));
+  lines.push('');
+  lines.push('【结论】');
+  lines.push(verdict.text);
+  lines.push('');
+  const pass = tiles.filter(t => t.tone === 'ok').length;
+  lines.push('【检查项】共 ' + tiles.length + ' 项，通过 ' + pass + ' 项');
+  tiles.forEach(t => {
+    const mark = t.tone === 'ok' ? '[通过]' : (t.tone === 'warn' ? '[关注]' : '[不通过]');
+    lines.push(mark + ' ' + t.label + '：' + t.value);
+    lines.push('        ' + t.detail);
+  });
+
+  const failed = COURSES.filter(c => c.status === 'failed');
+  if(failed.length){
+    lines.push('');
+    lines.push('【待补课程】共 ' + failed.length + ' 门');
+    failed.forEach((c, i) => lines.push('  ' + (i+1) + '. ' + c.name + '　' + c.credit + ' 学分' +
+      (isFailedNow(c) ? '（本轮未抢到）' : '（本学期可重选）')));
+  }
+
+  const rt = COURSES.filter(c => c.retake);
+  if(rt.length){
+    lines.push('');
+    lines.push('【重修】' + rt.map(c => c.name).join('、'));
+  }
+
+  lines.push('');
+  lines.push('【下一步建议】');
+  const tips = [];
+  if(tiles.some(t => t.tone === 'bad')) tips.push('先处理标记为「不通过」的检查项');
+  tips.push('待补课程按「越难抢越先」的顺序在下轮选课首轮提交');
+  tips.push('学分接近上限时，优先保留必修，选修按把握取舍');
+  tips.forEach((t, i) => lines.push('  ' + (i + 1) + '. ' + t));
+  lines.push('');
+  lines.push('说明：容量与余量为估算值，非教务系统实时数据；本报告由本地计算生成，不联网。');
+  return lines.join('\n');
+}
+
+/* ---------- 日程 ---------- */
+function cdOf(iso){
+  const diff = new Date(iso).getTime() - Date.now();
+  if(isNaN(diff)) return {text:'—', cls:'past'};
+  if(diff <= 0) return {text:'已结束', cls:'past'};
+  const mins = Math.floor(diff / 60000);
+  if(mins < 60) return {text: mins + ' 分钟后', cls:'bad'};
+  const hours = Math.floor(mins / 60);
+  if(hours < 24) return {text: hours + ' 小时 ' + (mins % 60) + ' 分后', cls:'warn'};
+  const days = Math.floor(hours / 24);
+  if(days <= 2) return {text: days + ' 天 ' + (hours % 24) + ' 小时后', cls:'warn'};
+  return {text: days + ' 天后', cls:'ok'};
+}
+
+function renderSchedule(){
+  const box = $('schedList');
+  if(!box) return;
+  const list = (state.schedule || []).slice().sort((a, b) => new Date(a.at) - new Date(b.at));
+  if(!list.length){
+    box.innerHTML = '<div class="empty" style="padding:12px 6px">还没有录入日程。选课通知里的时间点录进来，这里会倒计时。</div>';
+    return;
+  }
+  box.innerHTML = list.map(e => {
+    const cd = cdOf(e.at);
+    const cls = cd.cls === 'past' ? 'past' : (cd.cls === 'bad' || cd.cls === 'warn' ? 'soon' : '');
+    const at = e.at.replace('T', ' ');
+    return `<div class="sc-item ${cls}">
+      <span class="bar2"></span>
+      <span>
+        <span class="nm2">${e.title}</span>
+        <span class="at2">${at}</span>
+      </span>
+      <span class="cd ${cd.cls}">${cd.text}</span>
+      <button class="del2" data-delsc="${e.id}" title="删除">×</button>
+    </div>`;
+  }).join('');
+}
+
+function extractTimes(text){
+  const out = [];
+  const re = /(\d{1,2})\s*月\s*(\d{1,2})\s*日(?:\s*(\d{1,2})\s*[:：点时]\s*(\d{1,2})?)?/g;
+  let m;
+  while((m = re.exec(text))){
+    out.push({
+      mo: +m[1], da: +m[2],
+      hh: m[3] ? +m[3] : 9,
+      mi: m[4] ? +m[4] : 0
+    });
+  }
+  return out;
+}
+
+function autoDone(term){
+  const d = {};
+  Object.keys(MODULES).forEach(m => { d[m] = 0; });
+  if(term === 't2'){
+    COURSES.filter(c => c.term === 't1' && c.req).forEach(c => { d[c.module] += c.credit; });
+  }
+  return d;
+}
+
+function renderTerms(){
+  const box = $('terms');
+  if(!box) return;
+  box.querySelectorAll('.term-btn').forEach(b => {
+    b.classList.toggle('on', b.dataset.term === state.term);
+  });
+}
+
+function setTerm(t){
+  if(state.term === t) return;
+  state.term = t;
+  state.done = autoDone(t);
+  saveState();
+  view = {sols: [], active: 0};
+  renderTerms(); renderAll(); regenerate(true);
+  toast(t === 't1' ? '已切到大一上' : '已切到大一下，已修学分按大一上自动累计');
+}
+
+/* ---------- CSV 导入 / 导出 ---------- */
+function parseCsvLine(line){
+  const out = [];
+  let cur = '', q = false;
+  for(let i = 0; i < line.length; i++){
+    const ch = line[i];
+    if(q){
+      if(ch === '"'){
+        if(line[i+1] === '"'){ cur += '"'; i++; }
+        else q = false;
+      }else cur += ch;
+    }else{
+      if(ch === '"') q = true;
+      else if(ch === ','){ out.push(cur); cur = ''; }
+      else cur += ch;
+    }
+  }
+  out.push(cur);
+  return out.map(s => s.trim());
+}
+
+function csvCell(v){
+  const s = String(v == null ? '' : v);
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+const CSV_HEAD = ['课程名','学分','模块','教师','星期','起始节','节数','周次','容量','已选','口碑','必修'];
+const DAYMAP = {'周一':1,'周二':2,'周三':3,'周四':4,'周五':5,'周六':6,'周日':7,
+                '星期一':1,'星期二':2,'星期三':3,'星期四':4,'星期五':5,'星期六':6,'星期日':7,
+                '一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'日':7,'天':7,
+                '1':1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7};
+const MOD_COLORS = ['#2563eb','#6366f1','#0891b2','#7c3aed','#ea580c','#0f766e','#b91c1c','#a16207','#4d7c0f','#be185d'];
+let dynModSeq = 0;
+
+function ensureModule(name){
+  for(const k in MODULES) if(MODULES[k].name === name) return k;
+  const key = 'x' + (++dynModSeq);
+  MODULES[key] = {name, color: MOD_COLORS[Object.keys(MODULES).length % MOD_COLORS.length]};
+  if(state.need[key] === undefined){ state.need[key] = 0; state.done[key] = 0; }
+  return key;
+}
+
+function buildCsv(){
+  const rows = [CSV_HEAD.slice()];
+  COURSES.forEach(c => {
+    const modName = MODULES[c.module] ? MODULES[c.module].name : c.module;
+    const base = [c.name, c.credit, modName, c.teacher];
+    if(!c.fixed){
+      rows.push(base.concat(['', '', '', '无', c.cap, c.taken, c.rate, c.req ? '是' : '否']));
+    }else{
+      c.slots.forEach(s => {
+        rows.push(base.concat([DAYS[s.day-1] || s.day, s.start, s.len,
+          s.weeksText || '2-17', c.cap, c.taken, c.rate, c.req ? '是' : '否']));
+      });
+    }
+  });
+  return rows.map(r => r.map(csvCell).join(',')).join('\n');
+}
+
+function importCsv(text){
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if(!lines.length) throw new Error('内容为空');
+  let start = 0;
+  if(parseCsvLine(lines[0]).join('').indexOf('课程名') >= 0) start = 1;
+
+  const map = new Map();
+  const errors = [];
+  for(let i = start; i < lines.length; i++){
+    const cols = parseCsvLine(lines[i]);
+    const name = (cols[0] || '').trim();
+    const credit = Number(cols[1]);
+    if(!name){ errors.push('第 ' + (i+1) + ' 行：缺少课程名'); continue; }
+    if(!(credit > 0)){ errors.push('第 ' + (i+1) + ' 行：学分不合法「' + (cols[1] || '') + '」'); continue; }
+
+    if(!map.has(name)){
+      map.set(name, {
+        name, credit,
+        moduleName: (cols[2] || '通识必修').trim(),
+        teacher: (cols[3] || '').trim(),
+        req: (cols[11] || '').indexOf('否') < 0,
+        cap: Math.max(1, Number(cols[8]) || 60),
+        taken: Math.max(0, Number(cols[9]) || 0),
+        rate: Math.min(5, Math.max(0, Number(cols[10]) || 4)),
+        slots: []
+      });
+    }
+    const rec = map.get(name);
+    const day = DAYMAP[(cols[4] || '').trim()] || 0;
+    const st = Number(cols[5]) || 0;
+    const len = Number(cols[6]) || 0;
+    const weeks = (cols[7] || '2-17').trim();
+    if(day > 0 && st > 0 && len > 0){
+      rec.slots.push({day, start: st, len, weeks: weeks === '无' ? '2-17' : weeks, room: ''});
+    }
+  }
+  if(!map.size) throw new Error('没有解析到任何课程，请检查列顺序');
+
+  const fresh = [];
+  let n = 0;
+  map.forEach(rec => {
+    fresh.push({
+      id: 'u' + (++n), code: '', name: rec.name, credit: rec.credit, term: 't1',
+      module: ensureModule(rec.moduleName), teacher: rec.teacher, real: true, req: rec.req,
+      exam: '', cap: rec.cap, taken: Math.min(rec.taken, rec.cap), rate: rec.rate,
+      slots: rec.slots.length ? rec.slots : [{day:0, start:0, len:0, weeks:'2-17', room:'无固定时间'}]
+    });
+  });
+  return {fresh, errors};
+}
+
+function applyImport(text){
+  const {fresh, errors} = importCsv(text);
+  COURSES.length = 0;
+  COURSES.push.apply(COURSES, fresh);
+  compileCourses();
+  state.csvData = text;
+  state.wanted = fresh.filter(c => !c.req).map(c => c.id);
+  if(!state.wanted.length) state.wanted = fresh.map(c => c.id);
+  state.retake = [];
+  state.term = 't1';
+  state.done = autoDone('t1');
+  COURSES.forEach(c => { c.retake = false; });
+  view = {sols: [], active: 0};
+  poolFilter = 'all';
+  saveState();
+  return {courses: fresh.length, errors};
+}
+
+/* ---------- 备份与迁移（JSON） ---------- */
+function buildBackup(){
+  return JSON.stringify({
+    app: 'xk-planner',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    state: state
+  }, null, 2);
+}
+
+function restoreBackup(text){
+  let obj;
+  try{ obj = JSON.parse(text); }catch(e){ throw new Error('不是合法的 JSON 文件'); }
+  if(!obj || obj.app !== 'xk-planner' || !obj.state) throw new Error('这不是本工具导出的备份文件');
+  const s = obj.state;
+
+  /* 先还原课程池：有 csvData 就按导入恢复，否则回到内置数据 */
+  COURSES.length = 0;
+  if(s.csvData){
+    try{ applyImport(s.csvData); }
+    catch(e){
+      COURSES.push.apply(COURSES, JSON.parse(JSON.stringify(BUILTIN_SRC)));
+      compileCourses();
+      state.csvData = '';
+    }
+  }else{
+    COURSES.push.apply(COURSES, JSON.parse(JSON.stringify(BUILTIN_SRC)));
+    compileCourses();
+    state.csvData = '';
+  }
+
+  /* 再覆盖设置 */
+  if(Array.isArray(s.wanted)) state.wanted = s.wanted.filter(id => COURSES.some(c => c.id === id));
+  if(s.weights) Object.assign(state.weights, s.weights);
+  if(typeof s.maxCredit === 'number') state.maxCredit = s.maxCredit;
+  if(Array.isArray(s.retake)) state.retake = s.retake.filter(id => COURSES.some(c => c.id === id));
+  if(Array.isArray(s.schedule)) state.schedule = s.schedule.filter(e => e && e.at && e.title);
+  if(s.need) Object.assign(state.need, s.need);
+  if(s.done) Object.assign(state.done, s.done);
+  if(s.term === 't1' || s.term === 't2') state.term = s.term;
+  COURSES.forEach(c => { c.retake = state.retake.includes(c.id); });
+
+  saveState();
+  view = {sols: [], active: 0};
+  poolFilter = 'all';
+  renderAll();
+  regenerate(true);
+  return {courses: COURSES.length};
+}
+
+function renderAll(){
+  renderPlanRows(); renderWeights(); renderChips(); renderPool();
+  renderSolutions(); renderTimetable(); renderQueue(); renderTodo(); renderRetake();
+  renderDiagnosis(); renderSchedule(); renderTerms();
+  $('statWant').textContent = state.wanted.length;
+}
+
+/* =========================================================
+   交互
+   ========================================================= */
+let timer = null;
+function regenerate(immediate){
+  clearTimeout(timer);
+  const run = () => {
+    const sols = buildSolutions();
+    view.sols = sols;
+    view.active = Math.min(view.active, Math.max(0, sols.length - 1));
+    saveState();
+    renderAll();
+  };
+  if(immediate) run(); else timer = setTimeout(run, 140);
+}
+
+function toast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.classList.remove('on'), 1800);
+}
+
+function queueText(){
+  const sol = view.sols[view.active];
+  if(!sol) return '';
+  const rows = buildQueue(sol.sched);
+  const lines = [
+    '【抢课清单 · 先到先得】',
+    '方案：' + sol.name + '　综合 ' + sol.metrics.score.toFixed(1) + ' 分　' +
+      sol.metrics.credit + ' 学分 / ' + sol.sched.length + ' 门',
+    ''
+  ];
+  rows.forEach((r, i) => {
+    const c = r.course;
+    if(r.pre){
+      lines.push(`${i + 1}. ${c.retake ? '[重修·置顶] ' : '[预置] '}${c.name}（${timeLabel(c)}）`);
+    }else{
+      const bk = r.backup;
+      lines.push(`${i + 1}. ${c.name}（${timeLabel(c)}）周${c.slots.length ? weeksText(c.slots[0].weeks) : '—'}，余 ${remainOf(c)}/${c.cap}，把握 ${Math.round(pOf(c)*100)}%`);
+      lines.push(`   备选：${bk ? bk.name + '（' + timeLabel(bk) + '）' : '无'}`);
+    }
+  });
+  return lines.join('\n');
+}
+
+function init(){
+  if(state.csvData){
+    try{ applyImport(state.csvData); }
+    catch(e){ state.csvData = ''; }
+  }
+  renderAll();
+  regenerate(true);
+
+  /* 首次访问自动打开使用说明，只弹一次 */
+  try{
+    if(typeof localStorage !== 'undefined' && !localStorage.getItem('xk-help-seen')){
+      setTimeout(() => { const d = $('helpDlg'); if(d) d.showModal(); }, 700);
+    }
+  }catch(e){}
+
+  $('btnHelp').addEventListener('click', () => $('helpDlg').showModal());
+  $('btnHelpClose').addEventListener('click', () => {
+    try{ localStorage.setItem('xk-help-seen', '1'); }catch(e){}
+    $('helpDlg').close();
+  });
+  $('btnHelpReport').addEventListener('click', () => {
+    try{ localStorage.setItem('xk-help-seen', '1'); }catch(e){}
+    $('helpDlg').close();
+    $('btnReport').click();
+  });
+
+  $('pool').addEventListener('click', e => {
+    const row = e.target.closest('.row');
+    if(!row) return;
+    const id = row.dataset.id;
+    const course = byId(id);
+    if(course && course.status === 'failed'){ toast('该课已标记为「未抢到」，见下方待补清单'); return; }
+    const i = state.wanted.indexOf(id);
+    if(i >= 0) state.wanted.splice(i, 1); else state.wanted.push(id);
+    saveState(); renderPool(); regenerate();
+  });
+
+  $('chips').addEventListener('click', e => {
+    const b = e.target.closest('.chip');
+    if(!b) return;
+    poolFilter = b.dataset.f;
+    renderChips(); renderPool();
+  });
+
+  $('planRows').addEventListener('change', e => {
+    const inp = e.target.closest('input');
+    if(!inp) return;
+    const v = Math.max(0, Math.min(60, Number(inp.value) || 0));
+    state[inp.dataset.k][inp.dataset.m] = v;
+    inp.value = v;
+    regenerate();
+  });
+
+  $('weights').addEventListener('input', e => {
+    const inp = e.target.closest('input[type=range]');
+    if(!inp) return;
+    state.weights[inp.dataset.k] = Number(inp.value);
+    inp.parentElement.querySelector('.v').textContent = inp.value;
+    regenerate();
+  });
+
+  $('maxCredit').addEventListener('change', e => {
+    state.maxCredit = Math.max(6, Math.min(45, Number(e.target.value) || 30));
+    e.target.value = state.maxCredit;
+    regenerate();
+  });
+
+  $('sols').addEventListener('click', e => {
+    const b = e.target.closest('.sol');
+    if(!b) return;
+    view.active = Number(b.dataset.i);
+    renderSolutions(); renderTimetable(); renderQueue();
+  });
+
+  $('btnGen').addEventListener('click', () => { view.active = 0; regenerate(true); toast('已按当前设置重新生成'); });
+
+  $('btnReset').addEventListener('click', () => {
+    COURSES.length = 0;
+    COURSES.push.apply(COURSES, JSON.parse(JSON.stringify(BUILTIN_SRC)));
+    compileCourses();
+    state = defaultState();
+    view = {sols: [], active: 0};
+    poolFilter = 'all';
+    COURSES.forEach(c => { c.retake = false; });
+    saveState(); renderAll(); regenerate(true);
+    toast('已恢复示例数据');
+  });
+
+  $('btnImport').addEventListener('click', () => {
+    const msg = $('csvMsg');
+    msg.className = 'dlg-msg'; msg.textContent = '';
+    $('importDlg').showModal();
+  });
+
+  $('btnCloseDlg').addEventListener('click', () => $('importDlg').close());
+
+  $('csvFile').addEventListener('change', e => {
+    const f = e.target.files && e.target.files[0];
+    if(!f) return;
+    const r = new FileReader();
+    r.onload = () => { $('csvText').value = String(r.result || '').replace(/^\ufeff/, ''); };
+    r.readAsText(f, 'utf-8');
+  });
+
+  $('btnTpl').addEventListener('click', () => {
+    $('csvText').value = [
+      CSV_HEAD.join(','),
+      '高等数学A1,5,通识必修,郦钦龙,周二,3,2,2-17,60,8,4.5,是',
+      '高等数学A1,5,通识必修,郦钦龙,周五,6,3,2-17,60,8,4.5,是',
+      '大学英语A,3,外语类,杜兴杰,周二,1,2,2-17,40,5,4.1,是',
+      '艺术与审美,2,通识必修,周岚,周五,9,2,2-17,60,50,3.9,否',
+      '生成式人工智能应用基础,1,课外教育,武军,,,,无,150,143,4.6,是'
+    ].join('\n');
+    toast('已插入模板，可直接改或替换');
+  });
+
+  $('btnExpCsv').addEventListener('click', () => {
+    const csv = buildCsv();
+    $('csvText').value = csv;
+    const blob = new Blob(['\ufeff' + csv], {type:'text/csv;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '课程数据.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast('已导出 课程数据.csv');
+  });
+
+  $('btnDoImport').addEventListener('click', () => {
+    const msg = $('csvMsg');
+    try{
+      const r = applyImport($('csvText').value);
+      renderAll(); regenerate(true);
+      if(r.errors.length){
+        msg.className = 'dlg-msg err';
+        msg.textContent = '已导入 ' + r.courses + ' 门，但有 ' + r.errors.length +
+          ' 行被跳过：\n' + r.errors.slice(0, 5).join('\n');
+      }else{
+        msg.className = 'dlg-msg ok';
+        msg.textContent = '导入成功：共 ' + r.courses + ' 门课程，已整体替换课程池。';
+        setTimeout(() => { $('importDlg').close(); toast('已导入 ' + r.courses + ' 门课程'); }, 900);
+      }
+    }catch(err){
+      msg.className = 'dlg-msg err';
+      msg.textContent = '导入失败：' + err.message;
+    }
+  });
+
+  $('btnRetake').addEventListener('click', () => {
+    const id = $('retakeSel').value;
+    if(!id){ toast('没有可标记的课程'); return; }
+    const c = byId(id);
+    if(!c) return;
+    if(!state.retake.includes(id)) state.retake.push(id);
+    c.retake = true;
+    saveState();
+    renderRetake();
+    regenerate(true);
+    toast(c.name + ' 已标记为重修，清单已置顶');
+  });
+
+  $('retakeBody').addEventListener('click', e => {
+    const b = e.target.closest('[data-unretake]');
+    if(!b) return;
+    const id = b.dataset.unretake;
+    state.retake = state.retake.filter(x => x !== id);
+    const c = byId(id);
+    if(c) c.retake = false;
+    saveState();
+    renderRetake();
+    regenerate(true);
+    toast('已取消重修标记');
+  });
+
+  $('terms').addEventListener('click', e => {
+    const b = e.target.closest('.term-btn');
+    if(!b) return;
+    setTerm(b.dataset.term);
+  });
+
+  $('btnAddSc').addEventListener('click', () => {
+    const title = $('scTitle').value.trim();
+    const at = $('scAt').value;
+    if(!title){ toast('先填事件名称'); return; }
+    if(!at){ toast('先选时间'); return; }
+    state.schedule = state.schedule || [];
+    state.schedule.push({id:'e' + Date.now(), title, at});
+    saveState();
+    $('scTitle').value = ''; $('scAt').value = ''; $('scPaste').value = '';
+    renderSchedule();
+    toast('已添加，页面内倒计时生效');
+  });
+
+  $('btnExtract').addEventListener('click', () => {
+    const txt = $('scPaste').value;
+    if(!txt.trim()){ toast('先把通知原文粘进来'); return; }
+    const hits = extractTimes(txt);
+    if(!hits.length){ toast('没识别到「X月X日」格式的时间'); return; }
+    const h = hits[0];
+    const now = new Date();
+    const year = (h.mo < now.getMonth() + 1) ? now.getFullYear() + 1 : now.getFullYear();
+    const p = n => String(n).padStart(2, '0');
+    $('scAt').value = year + '-' + p(h.mo) + '-' + p(h.da) + 'T' + p(h.hh) + ':' + p(h.mi);
+    if(!$('scTitle').value.trim()) $('scTitle').value = '选课事件';
+    toast(hits.length > 1 ? '识别到 ' + hits.length + ' 个时间，已填入第 1 个' : '已提取时间，请补事件名称');
+  });
+
+  $('schedList').addEventListener('click', e => {
+    const b = e.target.closest('[data-delsc]');
+    if(!b) return;
+    state.schedule = (state.schedule || []).filter(x => x.id !== b.dataset.delsc);
+    saveState();
+    renderSchedule();
+  });
+
+  $('verdict').addEventListener('click', e => {
+    const b = e.target.closest('[data-go]');
+    if(!b) return;
+    const el = document.getElementById(b.dataset.go);
+    if(!el) return;
+    el.scrollIntoView({behavior:'smooth', block:'center'});
+    el.classList.remove('flash');
+    void el.offsetWidth;
+    el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 1600);
+  });
+
+  $('btnRecheck').addEventListener('click', () => {
+    renderDiagnosis();
+    toast('已重新检查，结论未变时说明课程池与设置未改动');
+  });
+
+  $('btnReport').addEventListener('click', () => {
+    const txt = buildReport();
+    const blob = new Blob([txt], {type:'text/plain;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '选课体检报告.txt';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast('已导出 选课体检报告.txt');
+  });
+
+  setInterval(() => { renderSchedule(); renderDiagnosis(); }, 30000);
+
+  $('btnBackup').addEventListener('click', () => {
+    const blob = new Blob([buildBackup()], {type:'application/json;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '选课方案规划器-备份.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast('已导出备份文件');
+  });
+
+  $('btnRestore').addEventListener('click', () => $('jsonFile').click());
+
+  $('jsonFile').addEventListener('change', e => {
+    const f = e.target.files && e.target.files[0];
+    if(!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      const msg = $('csvMsg');
+      try{
+        const res = restoreBackup(String(r.result || ''));
+        msg.className = 'dlg-msg ok';
+        msg.textContent = '已恢复：课程 ' + res.courses + ' 门，设置与日程一并还原。';
+        setTimeout(() => { $('importDlg').close(); toast('备份已恢复'); }, 900);
+      }catch(err){
+        msg.className = 'dlg-msg err';
+        msg.textContent = '恢复失败：' + err.message;
+      }
+    };
+    r.readAsText(f, 'utf-8');
+    e.target.value = '';
+  });
+
+  $('btnCopy').addEventListener('click', async () => {
+    const txt = queueText();
+    if(!txt) return toast('先生成方案');
+    try{
+      await navigator.clipboard.writeText(txt);
+      toast('清单已复制到剪贴板');
+    }catch(e){
+      const ta = document.createElement('textarea');
+      ta.value = txt; document.body.appendChild(ta); ta.select();
+      try{ document.execCommand('copy'); toast('清单已复制'); }
+      catch(err){ toast('复制失败，请手动选择'); }
+      ta.remove();
+    }
+  });
+
+  $('btnExport').addEventListener('click', () => {
+    const txt = queueText();
+    if(!txt) return toast('先生成方案');
+    const blob = new Blob([txt], {type:'text/markdown;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '抢课清单.md';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast('已导出 抢课清单.md');
+  });
+}
+
+if(typeof document !== 'undefined' && typeof document.getElementById === 'function' && document.getElementById('pool')) init();
+</script>
+</body>
+</html>
